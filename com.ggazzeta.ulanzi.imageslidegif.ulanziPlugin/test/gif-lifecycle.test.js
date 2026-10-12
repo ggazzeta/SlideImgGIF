@@ -62,8 +62,11 @@ test('Inspector save whitelist persists backend alongside existing preferences a
   function node(id){if(!nodes.has(id))nodes.set(id,{value:'',checked:false,handlers:{},addEventListener(event,fn){this.handlers[event]=fn;}});return nodes.get(id);}
   class Socket {static OPEN=1;readyState=1;handlers={};constructor(){Socket.instance=this;}addEventListener(event,fn){this.handlers[event]=fn;}send(x){sent.push(JSON.parse(x));}}
   vm.runInNewContext(source,{URLSearchParams,location:{search:'?key=3_2&actionid=one'},document:{getElementById:node},WebSocket:Socket});
-  Socket.instance.handlers.message({data:JSON.stringify({cmd:'sendToPropertyInspector',payload:{profile:{label:'Test',independent:true},settings:{gifBackend:'frames',sort:'date',showDateTime:true,dateTimeEverySlides:7,showSystemStats:true}}})});
-  assert.equal(node('gif-backend').value,'frames');node('interval').value='15';node('interval').handlers.change();
+  Socket.instance.handlers.message({data:JSON.stringify({cmd:'sendToPropertyInspector',uuid:ACTION_UUID,key:'3_2',actionid:'one',payload:{profile:{label:'Test',independent:true},settings:{gifBackend:'frames',sort:'date',showDateTime:true,dateTimeEverySlides:7,showSystemStats:true}}})});
+  assert.equal(node('gif-backend').value,'frames');
+  for(const cmd of ['sendToPropertyInspector','didReceiveGlobalSettings','add'])Socket.instance.handlers.message({data:JSON.stringify({cmd,uuid:ACTION_UUID,key:'3_2',actionid:'other-profile',payload:{settings:{folderPath:'C:/foreign',gifBackend:'native'}}})});
+  assert.equal(node('folder').value,'');assert.equal(node('gif-backend').value,'frames');
+  node('interval').value='15';node('interval').handlers.change();assert.equal(sent.at(-1).actionid,'one');
   const settings=sent.at(-1).payload.settings;assert.equal(settings.gifBackend,'frames');assert.equal(settings.sort,'date');assert.equal(settings.dateTimeEverySlides,7);assert.equal(settings.showSystemStats,true);assert.equal(settings.intervalSeconds,15);
   assert.equal(normalizeSettings({dateTimeOnly:true,gifBackend:'poster'}).gifBackend,'poster');assert.throws(()=>normalizeSettings({gifBackend:'automatic'}));
 });

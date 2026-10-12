@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { UlanziProtocolClient } from "../plugin/protocol-client.js";
 
+test('both active event spellings parse false strings and numbers without truthiness',()=>{
+  const client=new UlanziProtocolClient();client.uuid='com.ggazzeta.ulanzi.imageslidegif';const events=[];
+  client.onSetActive(event=>events.push(event.active));client.onSetactive(event=>events.push(event.active));
+  for(const cmd of ['setActive','setactive'])for(const active of [false,'false',0,'0',true,'true',1,'1'])client.receive(JSON.stringify({cmd,uuid:client.uuid+'.slideshow',key:'3_2',actionid:'one',active}));
+  assert.deepEqual(events,[false,false,false,false,true,true,true,true,false,false,false,false,true,true,true,true]);
+});
+
 test("setBaseDataIcon emits the SDK 2.1.2 state envelope", () => {
   const frames = []; class FakeSocket {} FakeSocket.OPEN = 1;
   const client = new UlanziProtocolClient({WebSocketImpl:FakeSocket});

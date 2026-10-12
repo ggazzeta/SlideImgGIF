@@ -35,6 +35,8 @@ test('read-only scope binding shares pages within a profile and separates differ
   try{
     const resolver=new ProfileScopeResolver({dataRoot:root}),a1=`${ACTION_UUID}___3_2___a1`,a2=`${ACTION_UUID}___3_2___a2`,b=`${ACTION_UUID}___3_2___b1`;
     assert.equal((await resolver.resolve(a1)).key,profileKey('group-a'));assert.equal((await resolver.resolve(a2)).key,profileKey('group-a'));assert.equal((await resolver.resolve(b)).key,profileKey('group-b'));
+    assert.equal((await resolver.resolve(a1)).deviceKey,(await resolver.resolve(a2)).deviceKey);assert.notEqual((await resolver.resolve(a1)).deviceKey,(await resolver.resolve(b)).deviceKey);
+    assert.equal((await resolver.resolve(a1)).selected,true);assert.equal((await resolver.resolve(a2)).selected,false);
     assert.equal((await resolver.resolve(`${ACTION_UUID}___3_2___missing`)).key,instanceKey(`${ACTION_UUID}___3_2___missing`));
     const page=join(root,'ProfilesV2','group-b','Profiles','b1','manifest.json'),before=await readFile(page,'utf8'),doc=JSON.parse(before);doc.Controllers[0].Actions['3_2'].ActionID='a1';await writeFile(page,JSON.stringify(doc));
     const ambiguous=await resolver.resolve(a1);assert.equal(ambiguous.key,instanceKey(a1));assert.match(ambiguous.warning,/separate/);

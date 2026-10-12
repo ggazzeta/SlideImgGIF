@@ -23,6 +23,7 @@ export class ProfileScopeResolver {
       for(const store of ['ProfilesV2','ProfilesV1']){
         let groups;try{groups=await this.directory(join(this.root,store),budget);}catch{if(budget.failed)return fallback;continue;}
         if(groups.length>256)return fallback;const matches=new Map();
+        let selected;try{selected=await this.json(join(this.root,'Config','setting_source.json'),budget);}catch{if(budget.failed)return fallback;}
         for(const group of groups){
           if(!group.isDirectory()||group.isSymbolicLink()||!safe(group.name))continue;
           const base=join(this.root,store,group.name);let profile;try{profile=await this.json(join(base,'manifest.json'),budget);}catch{if(budget.failed)return fallback;continue;}
@@ -32,7 +33,7 @@ export class ProfileScopeResolver {
           for(const page of pages){
             if(!safe(page))continue;let document;try{await this.directory(join(base,'Profiles',page),budget);document=await this.json(join(base,'Profiles',page,'manifest.json'),budget);}catch{if(budget.failed)return fallback;continue;}
             const entries=(document.Controllers||[]).filter(c=>c?.Type==='Keypad').map(c=>c.Actions?.['3_2']);
-            if(entries.some(entry=>entry?.Action===ACTION_UUID&&entry.ActionID===actionid))matches.set(group.name,{key:profileKey(group.name),label:typeof profile.Name==='string'?profile.Name.slice(0,200):'this profile',warning:''});
+            if(entries.some(entry=>entry?.Action===ACTION_UUID&&entry.ActionID===actionid))matches.set(group.name,{key:profileKey(group.name),label:typeof profile.Name==='string'?profile.Name.slice(0,200):'this profile',warning:'',deviceKey:typeof profile.Device.UUID==='string'?profileKey(`device\0${profile.Device.UUID.toLowerCase()}`):undefined,selected:Array.isArray(selected?.Devices)?selected.Devices.some(device=>device.CurrentDevice===profile.Device.UUID&&device.CurrentProfile===profile.Name)&&profile.Pages.Current===page:undefined});
           }
         }
         if(matches.size===1)return [...matches.values()][0];if(matches.size>1)return {...fallback,ambiguous:true};

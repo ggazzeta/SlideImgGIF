@@ -72,3 +72,7 @@ type, OS, backend and exact context. Do not record keys, personal paths or image
 
 Do not submit to the store or describe GIF animation as physically verified until
 the relevant platform/backend rows have observations and sustained results.
+
+## 0.10.1 profile switching regression
+
+After its approved installation, configure Profile A and Profile B with clearly distinguishable folders. Stay on A for several dwell intervals: only A's media should appear and its Inspector folder must stay fixed. Switch to B, wait, then return to A; confirm each folder, backend, dwell and enabled information panels remain independent. Repeat with the Inspector closed and with different pages in one profile (pages share that profile's preferences). Switch to a page using another plugin, then return, restart Studio, and reconnect the D200. Check that no old folder frame/poster overwrites the current output. Separately test two D200 devices if available; no multi-device hardware result is claimed.

@@ -3,7 +3,7 @@
 The user explicitly requested fully independent settings after observing the
 upstream/global model change the folder in every profile. Version 0.10.0 changes
 all slideshow, GIF, clock, WeatherAPI and system preferences to profile scope.
-The installed 0.9.0 remains unchanged until the concrete replacement is approved.
+0.10.0 was approved and installed; its own preference migration and backup hashes were verified. The user then reported conflicting playback from other profiles. 0.10.1 corrects display ownership and requires approval of its new package before installation.
 
 ## Scope and storage
 
@@ -91,3 +91,9 @@ Read-only checks resolve the saved D200 fork displays to profiles on this host.
 The installed update, actual SDK preferences migration and physical profile
 switching still require the approved replacement and manual validation. The user's
 basic physical PNG-frame confirmation applies to 0.9.0, not an untested 0.10.0.
+
+## 0.10.1 display ownership
+
+Separate preferences do not grant separate physical screens. Each saved D200 UUID has one owner for slot 3_2; activating another profile/page stops the previous gallery and shared-pump context before sending the replacement. Older async activation results cannot reclaim it. Device identity is hashed and never logged. Missing device metadata uses a conservative single-owner fallback, so simultaneous multi-device playback requires resolved device identities. A read-only snapshot of the existing Config/setting_source.json and Pages.Current prevents add events for unselected saved profiles from starting playback. This is private metadata observation, not an official assignment/getter API. No saved profiles are written. Explicit lifecycle events still govern activation/deactivation; false strings are parsed as false.
+
+The Inspector rejects packets for other action contexts and never changes its save target after binding. Existing profile leaves and their folder choices remain intact during this correction. Physically verify switch/return, Inspector closure, another plugin's page, and reconnect after installation.

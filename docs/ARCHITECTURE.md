@@ -61,3 +61,5 @@ Fork schemas and separate state roots reject upstream lineage. Profile cloning
 regenerates package/page/Action IDs and preserves Device and unrelated semantics;
 the tool now refuses non-built-in slot actions even when `--force` is supplied.
 No installed profile is part of automated testing or release artifacts.
+
+The profile runtime separates stored preferences from physical display ownership. All profile/page contexts bound to one saved D200 device UUID share a single 3_2 output lease. It revokes the previous gallery and animation context before starting its replacement. Sequence numbers reject stale async activations; unresolved device identity conservatively shares one output lease. Read-only private current-profile/page metadata suppresses inactive add events. No new SDK capability/profile getter is assumed. The Inspector is permanently bound to its action context and ignores another action's packets. False active strings/numbers are normalized before lifecycle dispatch.

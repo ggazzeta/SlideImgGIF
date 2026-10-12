@@ -10,7 +10,7 @@ official Ulanzi plugin.
 Fork: https://github.com/ggazzeta/SlideImgGIF. Based on
 [SlideImgPlugin](https://github.com/arkamax404-max/SlideImgPlugin) revision
 `cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8` (0.8.1), MIT copyright Santiago Pérez.
-Fork version: 0.10.0. The private profile technique attribution remains with
+Fork version: 0.10.1. The private profile technique attribution remains with
 https://github.com/chilleno/claude-deck as acknowledged by upstream.
 
 ## Playback

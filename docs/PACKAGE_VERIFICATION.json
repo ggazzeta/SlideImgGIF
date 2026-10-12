@@ -7,7 +7,7 @@
   "bundledSharpWorkerDecode": "passed",
   "bundledProtocolNativeOnce": "passed",
   "bundledStaticReplacement": "passed",
-  "bundledProfileIsolationAndSDKReadback": "passed with two synthetic profiles and fake socket",
+  "bundledProfileIsolationAndSDKReadback": "passed with two synthetic profiles sharing one D200 slot, switch/return and fake socket",
   "installedStudio": false,
-  "physicalAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 profile migration not physically tested"
+  "physicalAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 preferences migrated but playback conflict reported; 0.10.1 physical switching pending"
 }

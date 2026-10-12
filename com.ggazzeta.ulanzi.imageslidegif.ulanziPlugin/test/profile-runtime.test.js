@@ -13,14 +13,15 @@ function fixture({resolver,backups,confirm=true}={}){
   const client={onAdd:fn=>handlers.add=fn,onSetActive:fn=>handlers.active=fn,onSetactive:fn=>handlers.lower=fn,onClear:fn=>handlers.clear=fn,onSendToPlugin:fn=>handlers.inspector=fn,onDidReceiveGlobalSettings:fn=>handlers.global=fn,onClose:fn=>handlers.close=fn,onError:fn=>handlers.error=fn,
     decodeContext:context=>{const [uuid,key,actionid]=context.split('___');return {uuid,key,actionid};},setBaseDataIcon:(context,data)=>packets.push({context,data,type:1}),setGifDataIcon:(context,data)=>packets.push({context,data,type:3}),canSendFrame:()=>true,sendToPropertyInspector:(payload,context)=>packets.push({context,payload,type:'inspector'}),
     getGlobalSettings(){if(confirm||!writes.length)queueMicrotask(()=>handlers.global({settings:structuredClone(saved)}));return true;},setGlobalSettings(value){saved=structuredClone(value);writes.push(value);return true;}};
-  const context=name=>`${ACTION_UUID}___3_2___${name}`,scopeResolver=resolver||{resolve:async ctx=>({key:profileKey(ctx.endsWith('a2')?'a':ctx.split('___')[2]),label:ctx.endsWith('a2')?'a':ctx.split('___')[2],warning:''})};
+  const context=name=>`${ACTION_UUID}___3_2___${name}`,scopeResolver=resolver||{resolve:async ctx=>({key:profileKey(ctx.endsWith('a2')?'a':ctx.split('___')[2]),deviceKey:ctx.endsWith('a2')?'device-a2':`device-${ctx.split('___')[2]}`,label:ctx.endsWith('a2')?'a':ctx.split('___')[2],warning:''})};
   const configuration={defaults:normalizeSettings({}),fallbackSlides:[{name:'sample',signature:'sample',dataUri:'sample'}]},fsApi={lstatSync:async()=>({isDirectory:()=>true,isFile:()=>true,isSymbolicLink:()=>false,size:10,mtimeMs:1}),readdirSync:async()=>[{name:'clip.gif',isFile:()=>true,isSymbolicLink:()=>false}]};
   const runtime=new ProfileRuntime({client,configuration,timerApi,now:()=>now,scopeResolver,backups:backups||{write:async()=>{}},serviceOptions:{fsApi,imageLoader:async file=>({name:'clip.gif',kind:'gif',signature:file,dataUri:'poster',gifdata:'gif',frames:[file+'-0',file+'-1'],delays:[200,400],loop:0,preparedBytes:100})},animationPlayer:new AnimationPlayer({client,timerApi,now:()=>now}),watchFactory:()=>{watchCount++;return {on(){},close(){}};},logger(){}});runtime.bind();
   return {runtime,context,client,packets,writes,timers,scope:key=>runtime.profiles.get(profileKey(key)).service,advance:t=>now=t,get intervals(){return intervals;},get watchers(){return watchCount;},get saved(){return saved;}};
 }
 test('all preferences and folders save independently across profiles while pages share their profile; one gallery/frame scheduler and folder watcher remain',async()=>{
   const f=fixture();await f.runtime.activate({uuid:ACTION_UUID,context:f.context('a')});await f.runtime.activate({uuid:ACTION_UUID,context:f.context('b')});await f.runtime.activate({uuid:ACTION_UUID,context:f.context('a2')});
-  assert.equal(f.runtime.profiles.size,2);assert.equal(f.intervals,1);assert.equal(f.watchers,1);assert.equal(f.runtime.animation.contexts.size,3);
+  assert.equal(f.runtime.profiles.size,2);assert.equal(f.intervals,1);assert.equal(f.watchers,1);assert.equal(f.runtime.animation.contexts.size,2);
+  assert.equal(f.scope('a').activeContexts.has(f.context('a')),false);await f.runtime.activate({uuid:ACTION_UUID,context:f.context('a')});
   const settingsA={...f.scope('a').settings,folderPath:'C:/A',intervalSeconds:25,loop:false,sort:'date',dateFormat:'dmy',showDateTime:true,dateTimeEverySlides:3,dateTimeDurationSeconds:7,weatherApiKey:'A-secret',weatherLocation:'A-town',weatherUnits:'f',systemEverySlides:8,systemDurationSeconds:11};
   await f.runtime.fromInspector({uuid:ACTION_UUID,context:f.context('a'),payload:{type:'updateSettings',settings:settingsA}});
   assert.equal(f.scope('a').settings.folderPath,'C:/A');assert.equal(f.scope('b').settings.folderPath,'C:/legacy');assert.equal(f.scope('b').settings.intervalSeconds,10);assert.equal(f.scope('b').settings.weatherApiKey,'');assert.equal(f.saved.folderPath,'C:/legacy');
@@ -62,6 +63,36 @@ test('concurrent profile saves do not lose another profile and information mode 
   assert.equal(f.runtime.store.get(profileKey('a')).folderPath,'C:/A');assert.equal(f.runtime.store.get(profileKey('b')).folderPath,'C:/B');assert.equal(f.scope('a').settings.showImages,false);assert.equal(f.scope('b').settings.showImages,true);
   assert.equal(f.scope('a').slides[0].signature,'sample');assert.equal(f.runtime.budget.leases.has(profileKey('a')),false);assert.equal(f.runtime.animation.contexts.get(b).media.kind,'gif');assert.match(f.runtime.animation.contexts.get(a).media.signature,/date-time/);assert.equal(f.intervals,1);f.runtime.close();
 });
+test('same D200 profile switches stop all previous folder frames without depending on deactivation; independent folders survive return',async()=>{
+  const f=fixture({resolver:{resolve:async ctx=>({key:profileKey(ctx.split('___')[2]),deviceKey:'one-physical-D200',label:'Profile',warning:''})}}),a=f.context('a'),b=f.context('b');
+  await f.runtime.activate({uuid:ACTION_UUID,context:a});
+  await f.runtime.fromInspector({uuid:ACTION_UUID,context:a,payload:{type:'updateSettings',settings:{...f.scope('a').settings,folderPath:'C:/A'}}});
+  await f.runtime.activate({uuid:ACTION_UUID,context:b});
+  await f.runtime.fromInspector({uuid:ACTION_UUID,context:b,payload:{type:'updateSettings',settings:{...f.scope('b').settings,folderPath:'C:/B'}}});
+  assert.equal(f.scope('a').activeContexts.size,0);assert.deepEqual([...f.runtime.animation.contexts.keys()],[b]);
+  f.packets.length=0;f.advance(250);f.runtime.animation.pump();await f.scope('a').tick();assert.ok(f.packets.filter(p=>p.type===1||p.type===3).every(p=>p.context===b));
+  await f.runtime.activate({uuid:ACTION_UUID,context:a});assert.equal(f.scope('a').settings.folderPath,'C:/A');assert.equal(f.scope('b').settings.folderPath,'C:/B');assert.deepEqual([...f.runtime.animation.contexts.keys()],[a]);
+  f.runtime.close();assert.equal(f.timers.size,0);
+});
+
+test('inactive add does not start playback and late activation cannot take ownership from a newer profile',async()=>{
+  let release;const pending=new Promise(resolve=>release=resolve);
+  const f=fixture({resolver:{resolve:ctx=>ctx.endsWith('slow')?pending:Promise.resolve({key:profileKey(ctx.split('___')[2]),deviceKey:'one-D200',label:'Profile',warning:''})}});
+  const slow=f.context('slow'),b=f.context('b'),inactive=f.context('inactive');
+  await f.runtime.activate({uuid:ACTION_UUID,context:inactive,active:'false'},true);assert.equal(f.runtime.animation.contexts.size,0);
+  const activation=f.runtime.activate({uuid:ACTION_UUID,context:slow});await f.runtime.activate({uuid:ACTION_UUID,context:b});
+  release({key:profileKey('slow'),deviceKey:'one-D200',label:'Slow',warning:''});await activation;
+  assert.deepEqual([...f.runtime.animation.contexts.keys()],[b]);assert.equal(f.scope('slow').activeContexts.size,0);f.runtime.close();assert.equal(f.timers.size,0);
+});
+
+test('add for an unselected saved profile cannot steal the large display from its active profile',async()=>{
+  const f=fixture({resolver:{resolve:async ctx=>({key:profileKey(ctx.split('___')[2]),deviceKey:'one-D200',selected:!ctx.endsWith('hidden'),label:'Profile',warning:''})}}),a=f.context('a'),hidden=f.context('hidden');
+  await f.runtime.activate({uuid:ACTION_UUID,context:a},true);await f.runtime.activate({uuid:ACTION_UUID,context:hidden},true);
+  assert.deepEqual([...f.runtime.animation.contexts.keys()],[a]);assert.equal(f.scope('hidden').activeContexts.size,0);
+  await f.runtime.fromInspector({uuid:ACTION_UUID,context:hidden,payload:{type:'updateSettings',settings:{...f.scope('hidden').settings,folderPath:'C:/hidden'}}});
+  assert.deepEqual([...f.runtime.animation.contexts.keys()],[a]);assert.equal(f.scope('a').settings.folderPath,'C:/legacy');f.runtime.close();
+});
+
 test('shared profile resources coalesce weather and system work, bound combined gallery memory and close shared watchers once',async()=>{
   let calls=0,now=0,samples=0;const weather=new SharedWeatherRequests({now:()=>now,fetchImpl:async()=>{calls++;return {ok:true,status:200,text:async()=>'{"weather":true}'};}});
   const [a,b]=await Promise.all([weather.request('https://example.invalid/weather?key=private'),weather.request('https://example.invalid/weather?key=private')]);assert.equal(calls,1);assert.equal(await a.text(),await b.text());await weather.request('https://example.invalid/weather?key=private');assert.equal(calls,1);now=31*60*1000;await weather.request('https://example.invalid/weather?key=private');assert.equal(calls,2);

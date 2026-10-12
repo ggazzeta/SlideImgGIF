@@ -1,5 +1,13 @@
 # Validation results — 2026-10-12
 
+## 0.10.1 display ownership correction
+
+The user reported that the physical display cycled through multiple profiles' folders after installing 0.10.0. Its preference registry and private backup hashes were verified locally, but separate settings did not ensure separate playback: its tests allowed several profile contexts to pump the same physical slot. This was a release defect.
+
+The correction grants one owner per saved D200 device UUID/slot, stops the previous gallery and GIF pump before rendering the next profile, rejects late activation results, and refuses playback for explicitly inactive adds. Read-only `setting_source.json` and saved `Pages.Current` identify unselected saved profiles for add events; this is the existing private profile metadata technique, not a documented SDK capability getter. Explicit active events remain the lifecycle authority. Unresolved device identity conservatively allows one display owner.
+
+Both active-event spellings now parse false strings/numbers explicitly. The Inspector binds its context once and rejects foreign action packets, preventing another profile's state from retargeting saves. New synthetic regression cases cover switch/return with missing deactivation, inactive adds, out-of-order resolution, and foreign Inspector messages. Actual D200 switching after this correction remains unverified. Both Node versions (20.12.2 and 24.21.0) pass 94/94 tests. The staged Windows x64 package smoke passes with real bundled Sharp and fake SDK sockets, including two profiles sharing one display and switching back to the first.
+
 ## 0.10.0 profile update
 
 90/90 Node tests pass on 20.12.2 and 24.21.0. Added checks cover complete profile

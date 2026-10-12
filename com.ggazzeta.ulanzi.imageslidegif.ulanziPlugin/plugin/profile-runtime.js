@@ -5,6 +5,7 @@ import {ProfileScopeResolver,instanceKey} from './profile-scope.js';
 import {PreferenceBackups} from './preference-backups.js';
 import {SharedGalleryClock,SharedGalleryBudget,SharedFolderWatchers,SharedWeatherRequests,SharedSystemSamples} from './profile-resources.js';
 import {mediaPreparer} from './media-preparer.js';
+import {isActive} from './protocol-client.js';
 
 const canonical=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
 export class ProfileRuntime {
@@ -12,12 +13,12 @@ export class ProfileRuntime {
     this.client=client;this.configuration={...configuration,defaults:{...configuration.defaults,gifBackend:'frames'}};this.now=now;this.timers=timerApi;this.resolver=scopeResolver;this.backups=backups;this.options=serviceOptions;this.logger=logger;this.confirmationMs=confirmationMs;
     this.animation=animationPlayer||new AnimationPlayer({client,timerApi});this.clock=new SharedGalleryClock(timerApi);this.budget=new SharedGalleryBudget();this.watchers=new SharedFolderWatchers(watchFactory);
     this.weather=new SharedWeatherRequests({fetchImpl,now});this.system=new SharedSystemSamples({monitor:systemMonitor,now});
-    this.contexts=new Map();this.profiles=new Map();this.store=null;this.blocked=false;this.requested=false;this.generation=0;this.readyWaiters=new Set();this.saveQueue=Promise.resolve();this.confirmation=null;
+    this.contexts=new Map();this.profiles=new Map();this.displayOwners=new Map();this.activationSequence=0;this.store=null;this.blocked=false;this.requested=false;this.generation=0;this.readyWaiters=new Set();this.saveQueue=Promise.resolve();this.confirmation=null;
   }
   bind(){
     const run=fn=>event=>{void Promise.resolve(fn(event)).catch(()=>this.error(event?.context,'Profile settings could not be loaded; please reopen the Inspector.'));};
-    this.client.onAdd(run(event=>this.activate(event)));
-    const active=run(event=>event.active?this.activate(event):this.deactivate(event.context));this.client.onSetActive(active);this.client.onSetactive?.(active);
+    this.client.onAdd(run(event=>this.activate(event,true)));
+    const active=run(event=>isActive(event.active)?this.activate(event):this.deactivate(event.context));this.client.onSetActive(active);this.client.onSetactive?.(active);
     this.client.onClear(contexts=>this.clear(contexts));this.client.onSendToPlugin(run(event=>this.fromInspector(event)));
     this.client.onDidReceiveGlobalSettings(run(event=>this.receiveSettings(event)));this.client.onClose(()=>this.close());this.client.onError(()=>this.logger('[imageslide] connection-error'));
   }
@@ -85,15 +86,29 @@ export class ProfileRuntime {
     })().catch(error=>{this.error(event.context,error.message);if(this.contexts.get(event.context)===entry)this.contexts.delete(event.context);if(!this.store&&!this.readyWaiters.size)this.requested=false;throw error;});
     return entry.promise;
   }
-  async activate(event){
+  async activate(event,added=false){
+    if(!this.accepted(event))return;
+    if(added&&(event.active!==undefined||event.param?.active!==undefined)&&!isActive(event.active??event.param.active)){await this.ensure(event,false);return;}
+    const sequence=++this.activationSequence;
     const previous=this.contexts.get(event?.context),generation=this.generation;
     if(previous&&!previous.active&&previous.controller){const scope=await this.resolver.resolve(event.context);if(generation!==this.generation)return;if(scope.key!==previous.controller.scope.key||scope.ambiguous)this.clear([event.context]);else Object.assign(previous.controller.scope,scope);}
     const controller=await this.ensure(event,true),entry=this.contexts.get(event.context);if(!controller||!entry||entry.cancelled||!entry.active)return;
+    // Contexts include ActionID, but every page/profile on the same D200 shares
+    // physical slot 3_2. Only its current owner may run a gallery/frame pump.
+    if(added&&controller.scope.selected===false){this.deactivate(event.context);return;}
+    const target=controller.scope.deviceKey||'unresolved-d200:3_2',owner=this.displayOwners.get(target);
+    if(owner?.sequence>sequence){this.deactivate(event.context);return;}
+    for(const [otherTarget,otherOwner] of this.displayOwners)if(otherTarget!==target&&(target==='unresolved-d200:3_2'||otherTarget==='unresolved-d200:3_2')){
+      if(otherOwner.sequence>sequence){this.deactivate(event.context);return;}
+      this.deactivate(otherOwner.context);
+    }
+    if(owner&&owner.context!==event.context)this.deactivate(owner.context);
+    this.displayOwners.set(target,{context:event.context,sequence});
     const service=controller.service,wasActive=service.activeContexts.has(event.context);
     if(!wasActive){service.add(event);await service.rescan(true);if(entry.active&&!entry.cancelled)service.nextSlideAt=this.now()+(service.settings.showImages?service.settings.intervalSeconds*1000:service.informationDurationMs());}
   }
-  deactivate(context){const entry=this.contexts.get(context);if(!entry)return;entry.active=false;const service=entry.controller?.service;if(service)service.setActive({uuid:ACTION_UUID,context,active:false});}
-  clear(contexts){for(const context of contexts||[]){const entry=this.contexts.get(context);if(!entry)continue;entry.cancelled=true;entry.controller?.service.clear([context]);this.contexts.delete(context);}}
+  deactivate(context){const entry=this.contexts.get(context);if(!entry)return;entry.active=false;for(const [target,owner] of this.displayOwners)if(owner.context===context)this.displayOwners.delete(target);const service=entry.controller?.service;if(service)service.setActive({uuid:ACTION_UUID,context,active:false});}
+  clear(contexts){for(const context of contexts||[]){const entry=this.contexts.get(context);if(!entry)continue;this.deactivate(context);entry.cancelled=true;entry.controller?.service.clear([context]);this.contexts.delete(context);}}
   async fromInspector(event){
     if(!this.accepted(event))return;if(this.blocked){this.error(event.context,'Saved profile settings are incompatible; restore the private backup before saving.');if(event.payload?.type==='requestState')this.client.getGlobalSettings(event.context);return;}
     const controller=await this.ensure(event,false);if(!controller)return;
@@ -102,6 +117,6 @@ export class ProfileRuntime {
   }
   close(){
     this.generation++;for(const entry of this.contexts.values())entry.cancelled=true;for(const waiter of [...this.readyWaiters])waiter.reject();this.confirmation?.reject();
-    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();mediaPreparer.cancel();this.contexts.clear();this.profiles.clear();this.store=null;this.blocked=false;this.requested=false;
+    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();mediaPreparer.cancel();this.contexts.clear();this.profiles.clear();this.displayOwners.clear();this.store=null;this.blocked=false;this.requested=false;
   }
 }

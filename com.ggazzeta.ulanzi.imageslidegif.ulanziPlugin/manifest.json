@@ -4,7 +4,7 @@
   "Description": "Independent D200 slideshow with per-profile preferences and bounded GIF playback.",
   "Overview": "458×196 gallery with clock, weather, system panels and bounded GIF preparation. Physical GIF support unverified.",
   "Author": "ggazzeta; based on Santiago Pérez (MIT)",
-  "Version": "0.10.0",
+  "Version": "0.10.1",
   "Icon": "resources/icon.png",
   "Category": "ggazzeta",
   "CategoryIcon": "resources/category.png",

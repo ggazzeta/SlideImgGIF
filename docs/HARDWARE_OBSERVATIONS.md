@@ -29,3 +29,7 @@ establish sustained performance, exact delay/finite-loop behavior, all-media
 compatibility, clean static/information replacement, page/reconnect lifecycle or
 macOS animation. Those checks remain in MANUAL_VALIDATION.md. No store submission
 or broad hardware-verified release claim follows from this observation.
+
+## 0.10.0 profile playback defect
+
+After the explicitly approved update, all 202 installed files matched the package. SDK-stored profile preferences and both private preference backup hashes were verified; the original shared folder snapshot and PNG-frame backend remained intact. The user subsequently reported playback switching between folders configured in different profiles. A read-only inspection found two saved profile leaves with two distinct folders, so their stored choices were retained. Runtime source/tests exposed concurrent owners of the same physical large slot. Version 0.10.1 corrects ownership, inactive event parsing and Inspector context routing; physical switching validation for that corrected build is pending.

@@ -1,9 +1,9 @@
-# ImageSlide GIF 0.10.0 — independent ggazzeta fork
+# ImageSlide GIF 0.10.1 — independent ggazzeta fork
 
 MIT copyright Santiago Pérez retained. Not an official Ulanzi plugin.
 Source/instructions: https://github.com/ggazzeta/SlideImgGIF.
 **On the user's tested D200, 0.9.0 PNG frames animates; Native GIF freezes.**
-The 0.10.0 profile migration still requires installed/manual validation.
+0.10.0 preference migration was verified after installation; its playback conflicted across profiles. 0.10.1 fixes display ownership and still needs physical profile-switch validation.
 
 All preferences are now independent per profile. Pages in one profile share its
 settings. Each profile starts with a copy of the last 0.9.0 shared configuration;
