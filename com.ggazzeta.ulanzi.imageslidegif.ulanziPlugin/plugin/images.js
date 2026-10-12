@@ -47,7 +47,7 @@ export function svgDimensions(buffer) {
   throw new Error("SVG dimensions not found");
 }
 
-async function readMedia(file) {
+export async function readMedia(file) {
     const before=await lstat(file);
     if(!before.isFile()||before.isSymbolicLink()||!before.size||before.size>8*1024*1024)throw new Error('Media must be a real file no larger than 8 MiB');
     const handle=await open(file,constants.O_RDONLY|(constants.O_NOFOLLOW||0));
