@@ -39,6 +39,15 @@ URI as img.src. This verifies packet/convention handling only. No browser render
 real Studio preview or physical animation was observed. SIMULATOR_EVIDENCE.json
 records this boundary explicitly.
 
+## Packaged runtime
+
+The integrity-checked release stage was smoke-tested on Node 20.12.2 Windows x64:
+its bundled Sharp worker decoded the synthetic GIF, its bundled adapter delivered
+one native packet despite an unchanged render, and a direct static replacement
+followed. No Studio connection was opened. PACKAGE_VERIFICATION.json records the
+run. macOS dylib/architecture inventories are statically verified, not runtime or
+hardware tested. The fork/runtime source revisions are in BUILD_PROVENANCE.json.
+
 ## Local measurements (separate)
 
 PERFORMANCE_MEASUREMENTS.json records the final Node 24 run: original synthetic

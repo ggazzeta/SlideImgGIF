@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-12",
+  "node": "v20.12.2",
+  "platform": "win32",
+  "arch": "x64",
+  "source": "integrity/architecture-verified release stage",
+  "bundledSharpWorkerDecode": "passed",
+  "bundledProtocolNativeOnce": "passed",
+  "bundledStaticReplacement": "passed",
+  "installedStudio": false,
+  "physicalAnimation": "unverified"
+}

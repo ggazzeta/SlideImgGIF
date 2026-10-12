@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-12",
+  "version": "0.9.0",
+  "fork": "https://github.com/ggazzeta/SlideImgGIF",
+  "branch": "main",
+  "runtimeSourceRevision": "886e2fb810074c25de3a175d5a1e479bf8e1ee1b",
+  "upstreamRevision": "cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8",
+  "pluginFolder": "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin",
+  "sharp": "0.35.5",
+  "ws": "8.21.3",
+  "nodeTested": ["20.12.2", "24.21.0"],
+  "packagedTargets": ["windows-x64", "darwin-x64", "darwin-arm64"],
+  "hardwareAnimation": "unverified",
+  "installed": false,
+  "personalProfilesShipped": false
+}

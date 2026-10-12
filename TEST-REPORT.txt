@@ -6,6 +6,7 @@ Python 34 total, 32 pass, 2 optional skips; npm audit zero vulnerabilities.
 Current Node suite: 76/76 pass on Node 20.12.2 and 24.21.0, no skips.
 Python final suite: 35/35 pass including artifacts, no skips.
 Universal native stage: exact lock integrity, PE/Mach-O architecture checks passed.
+Packaged Node 20.12.2 Windows x64 smoke: worker decode, native once, PNG replacement pass.
 Simulator: official router + render function, fake sockets/DOM; 4 packets + replies.
 Browser animation, Studio preview animation and physical D200 animation: NOT TESTED.
 No installed Setup or audio changes. Personal profile clone preparation refused an
