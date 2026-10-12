@@ -10,7 +10,7 @@ official Ulanzi plugin.
 Fork: https://github.com/ggazzeta/SlideImgGIF. Based on
 [SlideImgPlugin](https://github.com/arkamax404-max/SlideImgPlugin) revision
 `cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8` (0.8.1), MIT copyright Santiago Pérez.
-Fork version: 0.9.0. The private profile technique attribution remains with
+Fork version: 0.10.0. The private profile technique attribution remains with
 https://github.com/chilleno/claude-deck as acknowledged by upstream.
 
 ## Playback
@@ -22,20 +22,24 @@ GIF frames are composited, independently centre-cropped and bounded by the
 Inspector feedback while valid images continue. Use Refresh beside folder
 selection for same-size/same-mtime replacements.
 
-* **Native GIF**: default documented candidate; sends once on activation/media
+* **Native GIF**: explicit documented candidate; sends once on activation/media
   change. Physical support is unverified. No invented speed/pause/completion API.
 * **PNG frames**: explicit experimental fallback, one shared monotonic scheduler,
   up to 10 FPS, backpressure and outdated-frame skipping via direct image delivery.
 * **Static poster**: safe GIF first-frame fallback.
 
-For the tested D200, select **GIF playback → PNG frames**. Version 0.9.0 defaults
-to Native GIF for new settings, so this selection is explicit. No reinstall is
-needed. Sustained timing/lifecycle validation and macOS animation remain pending.
+For the tested D200, select **GIF playback → PNG frames**. Version 0.10.0 uses
+PNG frames for fresh settings and preserves an existing explicit backend during
+migration. Sustained timing/lifecycle validation and macOS animation remain pending.
 
 Media dwell time remains the slideshow interval (minimum five seconds). Changing
 items may end a GIF mid-cycle. Gallery wrap-around and embedded GIF loops are
-separate; finite GIFs hold the final frame until dwell expires. Global settings
-intentionally remain shared by this fork's instances and separate from upstream.
+separate; finite GIFs hold the final frame until dwell expires. **Settings are now
+independent per profile**, including folders, timings, backend and information
+preferences. Pages within one profile share that profile's settings. Each profile
+starts with a copy of the last 0.9.0 shared preferences, then changes independently.
+The original shared snapshot and private backups are retained for rollback. See
+[profile migration](docs/PROFILE_SETTINGS_MIGRATION.md).
 
 ## Installation and rollback — separate approval
 
@@ -97,6 +101,7 @@ cd com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin
 npm ci
 npm test
 node tools/gif-probe.js --generate
+node tools/check-gifs.js "C:\path\to\download.gif"
 cd ..
 python -m unittest discover -s tests -v
 python tools/build_release.py
@@ -115,3 +120,9 @@ Read [compatibility](docs/COMPATIBILITY.md), [backend research](docs/GIF_BACKEND
 [Studio/D200 checklist](docs/MANUAL_VALIDATION.md). Automated/simulator evidence
 is separate from hardware observations. No store submission or verified physical
 animation claim is part of this initial implementation.
+
+To choose supported downloads, prefer smaller/shorter GIF variants and validate
+them in a holding folder before adding them to the slideshow. Compressed size
+alone cannot predict decoded/prepared memory. The read-only checker reports
+PASS/REJECT and exact reasons using the real pipeline; see
+[download guidance](docs/GIF_DOWNLOAD_GUIDE.md).

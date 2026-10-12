@@ -1,6 +1,7 @@
 # Preserve original media rejection diagnostics
 
 Development patch; not installed or included in the existing 0.9.0 ZIP.
+It is included in the prepared 0.10.0 profile update.
 
 The original enumerator cached rejected entries as null. A later stat-cache hit
 then produced “Cached image rejection” and discarded the original validation

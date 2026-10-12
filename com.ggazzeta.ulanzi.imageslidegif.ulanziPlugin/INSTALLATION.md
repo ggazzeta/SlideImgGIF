@@ -1,8 +1,21 @@
-# ImageSlide GIF 0.9.0 — independent ggazzeta fork
+# ImageSlide GIF 0.10.0 — independent ggazzeta fork
 
 MIT copyright Santiago Pérez retained. Not an official Ulanzi plugin.
 Source/instructions: https://github.com/ggazzeta/SlideImgGIF.
-**Physical native GIF and PNG-frame support is unverified.**
+**On the user's tested D200, 0.9.0 PNG frames animates; Native GIF freezes.**
+The 0.10.0 profile migration still requires installed/manual validation.
+
+All preferences are now independent per profile. Pages in one profile share its
+settings. Each profile starts with a copy of the last 0.9.0 shared configuration;
+then folders, dwell, backend, clock, weather and system preferences can differ.
+Fresh settings prefer PNG frames; explicit legacy choices are preserved.
+
+The runtime keeps the original flat preferences for rollback, stores independent
+leaves through the SDK global-settings contract, and verifies private before/latest
+backups under the fork's application-data preferences directory. It confirms SDK
+readback before applying saves. It never puts preferences into saved action
+parameters or changes SmallViewMode:2. Old 0.9.0 fork Setup lineage is retained;
+unknown versions, foreign UUIDs and extra action parameters still refuse.
 
 Windows x64 is the first target. macOS x64/arm64 native dependencies are bundled
 and statically checked; this does not establish macOS animation support.

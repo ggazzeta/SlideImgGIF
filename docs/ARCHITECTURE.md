@@ -1,5 +1,15 @@
 # Architecture
 
+Version 0.10.0 adds `ProfileRuntime` above the existing slideshow engine. It uses
+read-only exact ActionID-to-profile resolution and a versioned profile-leaf store
+transported through global settings. Each profile owns its slideshow engine and
+timeline, while GIF scheduling, the 1 Hz gallery clock, preparation, gallery
+memory, folder watchers, weather requests and system samples are shared. The
+flat legacy preferences remain for rollback, with private verified backups and
+SDK readback before saves are applied. See PROFILE_SETTINGS_MIGRATION.md for the
+identity, lifecycle, migration and failure boundaries. The following description
+also covers the original single-engine core used inside each profile.
+
 `images.js` asynchronously opens only real top-level files, checks identity before
 and after reading, never writes sources and hashes all content. `slideshow.js`
 preserves global settings, name/date ordering, deduplication, watcher/debounce,

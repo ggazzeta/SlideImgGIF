@@ -1,5 +1,13 @@
 # Identity boundaries
 
+0.10.0 update: identity UUIDs and folder remain unchanged. Version constants in
+manifest/package/lock, installer, profile generator, Setup service and helpers are
+0.10.0. Restore normalization adds only the known prior fork 0.9.0 metadata version;
+UUID/name/parameters/page/device/binding/hash checks and executable pins remain.
+New preferences live in a versioned global-settings registry and private preference
+backups, entirely outside saved page/action parameters and Setup receipt lineage.
+See PROFILE_SETTINGS_MIGRATION.md for the reviewed migration.
+
 Main UUID: com.ggazzeta.ulanzi.imageslidegif; folder: com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin. Actions: .slideshow and .setup. Four main segments are retained.
 
 Changed files (reviewed scope):

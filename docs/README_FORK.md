@@ -1,5 +1,9 @@
 # ImageSlide GIF — independent ggazzeta fork
 
+Historical 0.9.0 README snapshot. Current instructions are in the repository's
+README.md and PROFILE_SETTINGS_MIGRATION.md; this snapshot preserves the original
+global-settings documentation and does not describe 0.10.0 behavior.
+
 GIF preparation and three playback choices for the D200 458×196 large display,
 preserving the static slideshow, clock, WeatherAPI and CPU/GPU/RAM panels.
 **Physical animation support is unverified.** This is a community fork, not an

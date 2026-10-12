@@ -1,9 +1,17 @@
 # Fork and restore boundaries
 
+0.10.0 adds the user-requested fully independent profile model. All preferences
+move into profile leaves while the original flat 0.9.0 snapshot remains at the top
+level for rollback. Private before/latest backups are verified and SDK readback
+confirms saves. See docs/PROFILE_SETTINGS_MIGRATION.md. No saved action parameters,
+SmallViewMode, IDs, pages, other buttons or audio settings change. Prior fork 0.9.0
+center metadata remains restorable; unknown versions and upstream UUIDs refuse.
+Exact Windows executable pins are unchanged.
+
 This is a new independent plugin, not an in-place upstream upgrade.
 
 * Main UUID: `com.ggazzeta.ulanzi.imageslidegif` (four segments).
-* Actions: `.slideshow`, `.setup`; matching `.ulanziPlugin` folder; version 0.9.0.
+* Actions: `.slideshow`, `.setup`; matching `.ulanziPlugin` folder; version 0.10.0.
 * Setup state: `%LOCALAPPDATA%\ggazzeta\ImageSlideGIF` on Windows;
   `~/Library/Application Support/ggazzeta/ImageSlideGIF` on macOS.
 * Installer backups: `_ggazzeta_imageslidegif_backups`; new checksums only.

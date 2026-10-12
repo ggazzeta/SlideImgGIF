@@ -52,6 +52,15 @@ if not os.environ.get("IMAGESLIDE_WINDOWS_PROFILE_FIXTURE"):
     WINDOWS_PROFILE_FIXTURE_AVAILABLE = True
 
 class DeliveryTests(unittest.TestCase):
+    def test_windows_known_fork_version_restores_without_accepting_foreign_identity_or_new_action_parameters(self):
+        if not POWERSHELL:self.skipTest('Windows PowerShell is unavailable')
+        helper=(PLUGIN/'helper/Invoke-ImageSlideSetup.ps1').read_text(encoding='utf-8')
+        prefix=helper[helper.index('$ActionUuid='):helper.index('$exitCode=0')]
+        with tempfile.TemporaryDirectory() as td:
+            script=Path(td)/'known-version.ps1'
+            script.write_text(prefix+"\n$id='11111111-1111-4111-8111-111111111111';$current=NewSlideshowEntry $id;$a=CenterFingerprint $current;$old=CloneJson $current;$old.Plugin.Version='0.9.0';$b=CenterFingerprint $old;if(-not $a-or$a-ne$b){throw 'known lineage changed'};$old.Plugin.Version='0.8.9';if(CenterFingerprint $old){throw 'unknown version accepted'};$old=CloneJson $current;$old.Plugin.UUID='com.arkamax.ulanzi.imageslide';if(CenterFingerprint $old){throw 'foreign identity accepted'};$old=CloneJson $current;$old.ActionParam|Add-Member -NotePropertyName folderPath -NotePropertyValue 'forbidden';if(CenterFingerprint $old){throw 'parameters loosened'};Write-Output 'PASS'\n",encoding='utf-8')
+            run=subprocess.run([POWERSHELL,'-NoProfile','-ExecutionPolicy','Bypass','-File',str(script)],capture_output=True,text=True)
+            self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertIn('PASS',run.stdout)
     def test_clone_refuses_upstream_and_unrelated_slots_even_with_force(self):
         for action in ["com.arkamax.ulanzi.imageslide.slideshow", "com.example.unrelated.action"]:
             with tempfile.TemporaryDirectory() as td:

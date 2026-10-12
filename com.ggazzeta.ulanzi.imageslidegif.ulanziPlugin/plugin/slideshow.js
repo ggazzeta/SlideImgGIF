@@ -132,10 +132,10 @@ function compareNames(a, b) {
 }
 
 export class SlideshowService {
-  constructor({ client, configuration, timerApi = globalThis, now = Date.now, fsApi, imageLoader = loadSlide, watchFactory = watch, fetchImpl = globalThis.fetch, systemMonitor = new SystemMonitor(), logger = console.log } = {}) {
+  constructor({ client, configuration, timerApi = globalThis, now = Date.now, fsApi, imageLoader = loadSlide, watchFactory = watch, fetchImpl = globalThis.fetch, systemMonitor = new SystemMonitor(), logger = console.log, animationPlayer, cancelPreparation = ()=>mediaPreparer.cancel(), galleryBudget } = {}) {
     this.client=client; this.defaults=configuration.defaults; this.fallbackSlides=configuration.fallbackSlides;
     this.imageLoader=imageLoader;
-    this.animation=new AnimationPlayer({client,timerApi});this.scanRunning=null;this.scanAgain=false;this.tickRunning=false;this.lifecycleGeneration=0;
+    this.animation=animationPlayer||new AnimationPlayer({client,timerApi});this.cancelPreparation=cancelPreparation;this.galleryBudget=galleryBudget;this.scanRunning=null;this.scanAgain=false;this.tickRunning=false;this.lifecycleGeneration=0;
     this.settings={...this.defaults}; this.slides=this.fallbackSlides; this.status={level:"ready",message:"Using included sample slides.",count:this.slides.length};
     this.timerApi=timerApi; this.now=now; this.fsApi=fsApi; this.watchFactory=watchFactory; this.fetchImpl=fetchImpl; this.systemMonitor=systemMonitor; this.logger=logger;
     this.contexts=new Map(); this.activeContexts=new Set(); this.inspectors=new Set(); this.lastSignature=new Map();
@@ -188,12 +188,12 @@ export class SlideshowService {
     if (payload.type==="refreshWeather") { await this.refreshWeather(true); return; }
     if (payload.type!=="updateSettings") return;
     try {
-      const settings=normalizeSettings(payload.settings,this.settings); this.client.setGlobalSettings?.(settings,context); await this.applySettings(settings,true);
+      const settings=normalizeSettings(payload.settings,this.settings); await this.client.setGlobalSettings?.(settings,context); await this.applySettings(settings,true);
     } catch (error) { this.setStatus("error",error.message,0); }
   }
   async applySettings(settings, renderNow) {
     if(Object.keys(settings).length===Object.keys(this.settings).length && Object.keys(settings).every(key=>settings[key]===this.settings[key])){this.broadcastStatus();return;}
-    const settingsGeneration=++this.lifecycleGeneration;this.scanGeneration++;this.animation.close();mediaPreparer.cancel();this.lastSignature.clear();
+    const settingsGeneration=++this.lifecycleGeneration;this.scanGeneration++;this.stopAnimations();this.cancelPreparation();this.lastSignature.clear();
     const folderChanged=settings.folderPath!==this.settings.folderPath || settings.sort!==this.settings.sort;
     const weatherLocationChanged=settings.weatherLocation!==this.settings.weatherLocation, weatherUnitsChanged=settings.weatherUnits!==this.settings.weatherUnits, wasWeatherEnabled=this.settings.showWeather, willWeatherBeEnabled=settings.showWeather, weatherChanged=settings.weatherApiKey!==this.settings.weatherApiKey||weatherLocationChanged||wasWeatherEnabled!==willWeatherBeEnabled;
     if(weatherChanged||weatherUnitsChanged)this.weatherGeneration++;
@@ -244,12 +244,20 @@ export class SlideshowService {
   async scanFolder(renderNow=false) {
     const generation=++this.scanGeneration;
     this.nextRescanAt=this.now()+RESCAN_INTERVAL_MS;
-    if (!this.settings.showImages) { this.stopWatcher(); if(renderNow)this.renderAll(false); return; }
+    if (!this.settings.showImages) { this.stopWatcher();if(this.galleryBudget)this.releaseMedia(); if(renderNow)this.renderAll(false); return; }
     if (!this.settings.folderPath) { this.useFallback("Using included sample slides.",renderNow); return; }
     try {
       const candidateCache=new Map(this.slideCache);
       const result=await enumerateFolder(this.settings.folderPath,this.settings.sort,this.fsApi||undefined,candidateCache,this.imageLoader);
       if(generation!==this.scanGeneration)return;
+      if(this.galleryBudget&&this.activeContexts.size){
+        const admitted=this.galleryBudget.select(result.slides);const dropped=new Set(admitted.rejected.map(slide=>slide.signature));
+        result.slides=admitted.accepted;result.rejected+=admitted.rejected.length;
+        result.errors.push(...admitted.rejected.map(slide=>`${slide.name}: shared gallery memory budget reached; use a smaller folder`));
+        result.resized=result.slides.filter(slide=>slide.resized).length;
+        const shared=new Map(result.slides.map(slide=>[slide.signature,slide]));
+        for(const [key,slide] of candidateCache){if(dropped.has(slide?.signature))candidateCache.delete(key);else if(shared.has(slide?.signature)){const value=shared.get(slide.signature);candidateCache.set(key,{...slide,frames:value.frames,dataUri:value.dataUri,gifdata:value.gifdata});}}
+      }
       this.slideCache=candidateCache;
       for(const key of this.slideCache.keys())if(!result.cacheKeys.has(key))this.slideCache.delete(key);
       if (!result.slides.length) { this.useFallback(result.rejected ? "No supported images; using sample slides." : "Folder is empty; using sample slides.",renderNow); return; }
@@ -260,7 +268,7 @@ export class SlideshowService {
       this.ensureWatcher(); if (renderNow) this.renderAll(false);
     } catch { if(generation===this.scanGeneration)this.useFallback("Folder unavailable; using sample slides.",renderNow,"error"); }
   }
-  useFallback(message,renderNow,level="warning") { this.slides=this.fallbackSlides; this.index=Math.min(this.index,this.slides.length-1); this.setStatus(level,message,this.slides.length); this.stopWatcher(); if(renderNow)this.renderAll(false); }
+  useFallback(message,renderNow,level="warning") { this.galleryBudget?.release();this.slides=this.fallbackSlides; this.index=Math.min(this.index,this.slides.length-1); this.setStatus(level,message,this.slides.length); this.stopWatcher(); if(renderNow)this.renderAll(false); }
   setStatus(level,message,count) { this.status={level,message,count}; this.broadcastStatus(); this.log(`status-${level}`); }
   snapshot() { return { type:"state", settings:this.settings, status:this.status, weatherStatus:this.weatherStatus, systemStatus:this.systemStatus }; }
   sendStatus(context) { try { this.client.sendToPropertyInspector?.(this.snapshot(),context); } catch { this.log("inspector-send-error"); } }
@@ -314,6 +322,7 @@ export class SlideshowService {
     if(!this.timer)this.timer=this.timerApi.setInterval(()=>this.tick(),1000);
   }
   ensureWatcher() {
+    if(!this.activeContexts.size)return;
     if(!this.settings.showImages||this.watcher||!this.settings.folderPath||this.status.count===0||this.slides===this.fallbackSlides)return;
     try { this.watcher=this.watchFactory(this.settings.folderPath,{persistent:false},()=>this.queueRescan()); this.watcher.on?.("error",()=>this.queueRescan()); }
     catch { this.watcher=null; }
@@ -323,7 +332,9 @@ export class SlideshowService {
     this.watchDebounce=this.timerApi.setTimeout(async()=>{this.watchDebounce=null;await this.rescan(true);},WATCH_DEBOUNCE_MS);
   }
   stopWatcher() { try{this.watcher?.close();}catch{} this.watcher=null; if(this.watchDebounce)this.timerApi.clearTimeout(this.watchDebounce); this.watchDebounce=null; }
-  stopRuntime() { this.lifecycleGeneration++; this.scanGeneration++; this.animation.close(); mediaPreparer.cancel(); if(this.timer)this.timerApi.clearInterval(this.timer); this.timer=null; this.nextSlideAt=0; this.nextRescanAt=0; this.showingDateTime=false; this.dateTimeUntil=0; this.imagesSinceDateTime=1; this.showingWeather=false; this.weatherUntil=0; this.imagesSinceWeather=1; this.showingSystem=false; this.systemUntil=0; this.imagesSinceSystem=1; this.presentationQueue=[]; this.stopWatcher(); }
-  close() { this.animation.close(); mediaPreparer.cancel(); this.stopRuntime(); this.activeContexts.clear(); this.contexts.clear(); this.inspectors.clear(); this.lastSignature.clear(); this.slideCache.clear();this.settingsRequested=false; }
+  stopAnimations() { for(const context of this.contexts.keys())this.animation.remove(context); }
+  releaseMedia() { this.galleryBudget?.release();this.slides=this.fallbackSlides;this.slideCache.clear(); }
+  stopRuntime() { this.lifecycleGeneration++;this.weatherGeneration++; this.scanGeneration++; this.stopAnimations(); this.cancelPreparation(); if(this.timer)this.timerApi.clearInterval(this.timer); this.timer=null; this.nextSlideAt=0; this.nextRescanAt=0; this.showingDateTime=false; this.dateTimeUntil=0; this.imagesSinceDateTime=1; this.showingWeather=false; this.weatherUntil=0; this.imagesSinceWeather=1; this.showingSystem=false; this.systemUntil=0; this.imagesSinceSystem=1; this.presentationQueue=[]; this.stopWatcher();if(this.galleryBudget)this.releaseMedia(); }
+  close() { this.stopRuntime(); this.activeContexts.clear(); this.contexts.clear(); this.inspectors.clear(); this.lastSignature.clear(); this.slideCache.clear();this.settingsRequested=false; }
   log(event,slide="") { const safe=/^[A-Za-z0-9._-]{1,128}$/.test(slide)?slide:""; this.logger(`[imageslide] ${JSON.stringify({event,slide:safe,active:this.activeContexts.size})}`); }
 }

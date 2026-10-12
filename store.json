@@ -3,7 +3,7 @@
   "screenshots": [
     "resources/store/banner.png"
   ],
-  "longDescription": "Independent experimental ImageSlide GIF fork by ggazzeta, based on Santiago Pérez (MIT). Windows x64 and macOS x64/arm64 native dependencies are packaged and statically verified; physical GIF support is unverified on all platforms. Native GIF, bounded PNG frames, and poster modes preserve gallery, clock, weather and system panels. Setup is a private profile technique with exact Windows build pins; macOS users reopen Studio manually and the clock overlay can remain visible. No public animated-support claim or store submission is made. Technique attribution: https://github.com/chilleno/claude-deck.",
+  "longDescription": "Independent experimental ImageSlide GIF fork by ggazzeta, based on Santiago Pérez (MIT), with fully independent per-profile preferences and preserved legacy migration/rollback. Windows x64 and macOS x64/arm64 native dependencies are packaged and statically verified. The user reports 0.9.0 PNG frames works on one physical D200, while Native GIF freezes; the 0.10.0 profile update has not been physically validated. Native GIF, bounded PNG frames and poster modes preserve gallery, clock, weather and system panels. Setup is a private profile technique with exact Windows build pins; macOS users reopen Studio manually and the clock overlay can remain visible. No store submission or broad hardware-verified claim is made. Technique attribution: https://github.com/chilleno/claude-deck.",
   "deviceTypes": [
     "deck"
   ],

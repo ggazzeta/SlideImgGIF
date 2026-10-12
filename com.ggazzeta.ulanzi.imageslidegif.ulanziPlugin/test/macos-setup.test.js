@@ -26,6 +26,17 @@ async function fixture(){
 async function readPage(f){return JSON.parse(await readFile(f.manifest,"utf8"))}
 async function writePage(f,page,compact=false){await writeFile(f.manifest,JSON.stringify(page,null,compact?0:2))}
 async function install(f){await prepare({dataRoot:f.data,stateRoot:f.state,key:"0_0",setupActionId:actionId});return apply({dataRoot:f.data,stateRoot:f.state,isStudioClosed:async()=>true})}
+
+test('0.9.0 fork center metadata remains restorable after the profile update while unknown versions and parameter changes refuse',async()=>{
+  for(const variant of ['known','unknown','params','upstream']){
+    const f=await fixture();
+    try{
+      await install(f);const page=await readPage(f),center=page.Controllers[0].Actions['3_2'];center.Plugin.Version=variant==='unknown'?'0.8.9':'0.9.0';if(variant==='params')center.ActionParam.folderPath='forbidden';if(variant==='upstream')center.Plugin.UUID='com.arkamax.ulanzi.imageslide';await writePage(f,page);
+      if(variant==='known'){await prepare({dataRoot:f.data,stateRoot:f.state,key:'0_0',setupActionId:actionId,operation:'restore'});const receipt=await apply({dataRoot:f.data,stateRoot:f.state,isStudioClosed:async()=>true});assert.equal(receipt.result,'restored');assert.equal((await readPage(f)).Controllers[0].Actions['3_2'].Action,builtIn);}
+      else await assert.rejects(prepare({dataRoot:f.data,stateRoot:f.state,key:'0_0',setupActionId:actionId,operation:'restore'}));
+    }finally{await rm(f.root,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
+  }
+});
 async function patchRun(f){for(const name of await readdir(join(f.state,"backups"))){const receiptPath=join(f.state,"backups",name,"receipt.json");try{const receipt=JSON.parse(await readFile(receiptPath,"utf8"));if(receipt.operation==="patch")return{name,receiptPath,receipt}}catch{}}throw new Error("Patch receipt not found")}
 async function rejectRestore(f,code="RESTORE_BACKUP_INVALID"){await assert.rejects(prepare({dataRoot:f.data,stateRoot:f.state,key:"0_0",setupActionId:actionId,operation:"restore"}),error=>error.code===code&&error.phase==="RESTORE_RESOLUTION")}
 

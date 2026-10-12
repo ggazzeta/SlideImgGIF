@@ -1,13 +1,14 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { UlanziProtocolClient } from "./protocol-client.js";
-import { ACTION_UUID, PLUGIN_UUID, SlideshowService, loadConfiguration } from "./slideshow.js";
+import { ACTION_UUID, PLUGIN_UUID, loadConfiguration } from "./slideshow.js";
+import {ProfileRuntime} from './profile-runtime.js';
 import { SetupService } from "./setup.js";
 import {createCapabilityProbe} from './capability-probe.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const client = new UlanziProtocolClient();
-const service = new SlideshowService({ client, configuration: await loadConfiguration(root) });
+const service = new ProfileRuntime({ client, configuration: await loadConfiguration(root) });
 const setup = new SetupService({ client, root });
 const probe=process.env.GG_IMAGESLIDE_GIF_PROBE_CONTEXT
   ? await createCapabilityProbe({client,context:process.env.GG_IMAGESLIDE_GIF_PROBE_CONTEXT}) : null;

@@ -19,6 +19,13 @@ These are conservative project policies, **not Ulanzi firmware limits**.
 | PNG scheduler | up to 10 FPS |
 | WebSocket bytes in flight | 1 MiB |
 
+In 0.10.0, the 32 MiB gallery budget is shared across all active profiles rather
+than repeated per profile; inactive profiles release their prepared gallery.
+There is still one shared GIF scheduler and one gallery clock. Identical folder
+watchers, weather requests and system samples are shared. Preference metadata
+has separate project caps of 256 profiles and 1 MiB serialized settings; private
+backup/read-only lookup bounds are described in PROFILE_SETTINGS_MIGRATION.md.
+
 The pinned encoder accepts delay values up to 65535 ms and iteration counts up
 to 65535. Sources outside that encoding range are rejected with an actionable
 timing error rather than silently changing finite loops or frame timing.

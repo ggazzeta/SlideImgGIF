@@ -1,5 +1,13 @@
 # Compatibility evidence (2026-10-12)
 
+0.10.0 update: the user authorized fully independent profile preferences. Source
+and packaged tests cover this migration; the update is not installed yet. Existing
+0.9.0 fork Setup lineage remains accepted only through narrowly enumerated metadata
+versions; exact Studio executable pins and all other binding/integrity checks
+remain unchanged. Saved D200 actions resolve to profile scopes in read-only host
+checks. See PROFILE_SETTINGS_MIGRATION.md. Original global behavior below is
+upstream/0.9.0 history, superseded by the requested profile model in 0.10.0.
+
 ## Verified sources
 
 Upstream https://github.com/arkamax404-max/SlideImgPlugin remains at

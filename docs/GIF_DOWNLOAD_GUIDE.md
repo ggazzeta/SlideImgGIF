@@ -36,8 +36,9 @@ Validation: the development branch's 79/79 Node tests pass on 20.12.2 and
 24.21.0. Synthetic checker tests cover actual preparation, content mismatch,
 excluded filenames, source integrity and omission of private paths in read errors.
 
-Profiles currently share global configuration by design. Changing folder, timing,
-backend or information preferences in one fork instance affects the others. A
-separate-folder or separate-settings model requires an explicit migration that
-preserves existing global preferences and setup/restore lineage; it must not simply
-overwrite per-action parameters, which include SmallViewMode:2.
+Version 0.9.0 shares global configuration by design, which explains why changing
+a folder changed other profiles. The user requested fully independent settings;
+0.10.0 implements [profile-scoped preferences](PROFILE_SETTINGS_MIGRATION.md) with
+preserved legacy settings and Setup/restore lineage. It does not put preferences
+into per-action parameters or overwrite SmallViewMode:2. The installed 0.9.0 stays
+unchanged until the prepared update is explicitly approved.

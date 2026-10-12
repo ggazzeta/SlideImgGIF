@@ -1,5 +1,19 @@
 # Validation results — 2026-10-12
 
+## 0.10.0 profile update
+
+90/90 Node tests pass on 20.12.2 and 24.21.0. Added checks cover complete profile
+isolation, same-profile pages, concurrent serialized saves/SDK readback, stale
+echoes and unsupported-schema refusal, backup integrity, scoped animations,
+information switching and gallery release, shared resources, reconnect, read-only
+profile resolution, and 0.9.0 fork restore compatibility. The packaged Node 20.12.2
+smoke test covers bundled worker decode and two independent synthetic profiles
+through fake SDK sockets. No installed update or real preference migration was run.
+36/36 Python checks pass, including fresh package inventories/checksums and
+Windows prior-fork-version fingerprint/restore boundaries. Exact native dependency
+pins, architecture inventories and executable hashes remain unchanged.
+The earlier 0.9.0 runs below remain historical evidence.
+
 ## Baseline before implementation
 
 Upstream `cd8c36c`, Node 22.14.0: 59 tests, 58 passed, one failed while Windows
