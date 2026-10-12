@@ -17,6 +17,7 @@ test('legacy shared preferences seed independent profiles and stay intact for ro
   assert.equal(restored.get(a).folderPath,'C:/A');assert.equal(restored.get(a).intervalSeconds,17);assert.equal(restored.get(b).folderPath,'C:/B');assert.equal(restored.get(b).dateFormat,'mdy');assert.equal(restored.get(a).showSystemStats,false);
   const copy=restored.get(a);copy.folderPath='wrong';assert.equal(restored.get(a).folderPath,'C:/A');
   assert.throws(()=>new ProfileSettingsStore({...snapshot,profileSettingsSchema:'unknown'},normalizeSettings({})),/unsupported/);
+  assert.throws(()=>new ProfileSettingsStore([],normalizeSettings({})),/invalid/);assert.throws(()=>new ProfileSettingsStore({profileSettings:{}},normalizeSettings({})),/format marker/);
   assert.throws(()=>new ProfileSettingsStore({...snapshot,profileSettings:{__bad:{}}},normalizeSettings({})),/identity/);
 });
 

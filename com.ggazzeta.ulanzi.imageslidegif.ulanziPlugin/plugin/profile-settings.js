@@ -7,7 +7,9 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 // touch only their profile leaf; no per-action parameters or Setup receipts change.
 export class ProfileSettingsStore {
   constructor(value,defaults){
+    if(value!==undefined&&value!==null&&(typeof value!=='object'||Array.isArray(value)))throw new Error('Saved preferences are invalid; nothing was changed.');
     const raw=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+    if(raw.profileSettings!==undefined&&raw.profileSettingsSchema===undefined)throw new Error('Saved profile settings are missing their format marker; nothing was changed.');
     if(raw.profileSettingsSchema!==undefined&&raw.profileSettingsSchema!==PROFILE_SETTINGS_SCHEMA)throw new Error('Saved profile settings use an unsupported format; nothing was changed.');
     this.legacy=normalizeSettings(raw,defaults);this.base=clone(raw);this.profiles=new Map();this.revision=raw.profileSettingsRevision??0;
     if(!Number.isSafeInteger(this.revision)||this.revision<0)throw new Error('Saved profile revision is invalid; nothing was changed.');
