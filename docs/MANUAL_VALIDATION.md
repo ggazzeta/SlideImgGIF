@@ -15,11 +15,17 @@ type, OS, backend and exact context. Do not record keys, personal paths or image
    This creates red/green/blue 458×196 frames with 200/400/600 ms delays and infinite
    looping. No third-party media is involved.
 3. Obtain an exact normal-key control context and then the actual large-display
-   context. The runtime rejects normal keys; the standalone approved probe can
-   target either one. Set `GIF_PROBE_CONTEXT` to the exact action UUID/key/ActionID.
-4. With explicit approval for these deliveries, invoke the probe with address/port
-   as the first two argv arguments, then `--send-approved`. It sends type 3 GIF
-   data URI and replaces it with direct type 1 PNG after 10 seconds, then closes.
+   context on a separately approved test profile. Production slideshow rejects
+   normal keys; the isolated capability mode accepts either exact fork context.
+4. After explicit approval, close Studio manually and launch it from a shell with
+   process-only environment variable `GG_IMAGESLIDE_GIF_PROBE_CONTEXT` set to the
+   exact `fork-action-uuid___key___ActionID` string. The fork's existing main runtime
+   binds only the capability probe, preventing a duplicate main socket or gallery
+   tick from racing with the test. On matching add/active, it sends type 3 GIF data
+   URI, then direct type 1 PNG after 10 seconds. Other contexts are ignored and
+   global settings are not rewritten. Standalone `--send-approved` is refused.
+   Stop/relaunch Studio manually without this process-only variable to return to
+   normal playback. No other plugin reads this fork-specific variable.
 5. Observe distinguishable frame changes, delay ratios, loop, and static replacement
    separately in Studio and D200. Record failure as failure, regardless of reply.
    If native fails only on physical display, select PNG frames deliberately; do not

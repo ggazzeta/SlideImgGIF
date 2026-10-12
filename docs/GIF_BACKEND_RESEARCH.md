@@ -20,6 +20,13 @@ both packet forwarding and the official rendering function with fake DOM. Bare
 Base64 would be a relative URL in that renderer. This verifies the simulator
 convention, not Studio or firmware acceptance. Physical acceptance remains pending.
 
+The final capability prototype is isolated inside the fork's existing main
+runtime using a process-only environment variable. The standalone tool generates
+assets but refuses to connect a competing main socket. In probe mode no gallery
+or Setup handlers run, so another tick cannot contaminate native testing. Synthetic
+probe tests cover normal and large contexts and timed PNG replacement. No actual
+Studio/device delivery has been performed.
+
 ## Evidence boundary
 
 Automated packets, decoded pixels and fake sockets establish processing/transport behavior only. Browser/simulator/Studio preview cannot establish D200 animation. Native cessation on deactivation is not documented: send a static poster on a live deactivation; socket loss prevents delivery. Verify the resulting physical behavior before recommending native playback.

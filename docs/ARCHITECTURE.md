@@ -40,8 +40,11 @@ The custom protocol adapter is extended minimally. Outer and statelist target
 identifiers, clear events, both active spellings, settings and argv remain intact.
 A bounded reconnect delay registers again and relies on Studio to replay add/active
 contexts; shutdown cancels reconnect. The runtime still accepts only large key
-`3_2`. The standalone probe can manually target a normal control key without
-weakening runtime eligibility.
+`3_2`. After explicit approval, `GG_IMAGESLIDE_GIF_PROBE_CONTEXT` selects an
+isolated capability probe inside the fork's existing main runtime. Slideshow/Setup
+handlers are not bound in that process-only test mode, preventing duplicate main
+connections and competing gallery ticks. Production normal-key eligibility and
+persisted settings remain unchanged; generated probe assets cover both contexts.
 
 Setup retains the private-profile boundary and exact upstream executable pins.
 Fork schemas and separate state roots reject upstream lineage. Profile cloning

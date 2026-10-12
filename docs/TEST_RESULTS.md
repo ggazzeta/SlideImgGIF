@@ -10,7 +10,7 @@ were added to temporary fixture removal; no production safety check was relaxed.
 
 ## Implemented automated validation
 
-75 Node tests pass, zero skipped/failing, on exact **20.12.2** and current LTS
+76 Node tests pass, zero skipped/failing, on exact **20.12.2** and current LTS
 **24.21.0** Windows x64. Official runtime archives were SHA-256 checked before use.
 See TEST_RUNTIMES.json. Coverage includes static/information regressions, synthetic
 GIF header/content/limits/truncation, uppercase/mixed folders, full-content hashes,
@@ -18,7 +18,8 @@ same-stat Refresh, frame dimensions/delays/loops/duplicate preservation, known
 RGBA disposal/partial/transparency composition, re-encoded native temporal pixels,
 worker timeout/queue/cancellation, official packet fields, frame cadence/lag/drop,
 multiple contexts sharing media, settings whitelist persistence, Inspector absence,
-deactivation/late scan results, information replacement and bounded reconnect.
+deactivation/late scan/probe results, information replacement, bounded reconnect
+and isolated capability probe behavior for normal and large-display contexts.
 
 Python final suite including artifacts: **35/35 passed, zero skipped**. Before
 artifact construction, only the artifact test was temporarily skipped. Optional
