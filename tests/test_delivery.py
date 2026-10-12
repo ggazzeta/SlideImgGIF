@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PLUGIN = ROOT / "com.arkamax.ulanzi.imageslide.ulanziPlugin"
+PLUGIN = ROOT / "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin"
 DEFAULT_WINDOWS_PROFILE_FIXTURE = ROOT / "tests" / "fixtures" / "windows-profile.ulanziDeckProfile"
 SOURCE = Path(os.environ.get("IMAGESLIDE_WINDOWS_PROFILE_FIXTURE", DEFAULT_WINDOWS_PROFILE_FIXTURE)).expanduser()
 TARGET = os.environ.get("IMAGESLIDE_WINDOWS_PROFILE_ID")
@@ -28,7 +28,48 @@ spec.loader.exec_module(tool)
 
 PLUGIN_VERSION = json.loads((PLUGIN / "package.json").read_text(encoding="utf-8"))["version"]
 
+# Original synthetic profile, never an installed profile or upstream receipt.
+_fixture_root = tempfile.TemporaryDirectory(prefix="gif-profile-fixture-")
+SYNTHETIC_PROFILE = Path(_fixture_root.name) / "synthetic.ulanziDeckProfile"
+_package = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+_page = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+_prefix = _package + ".ulanziProfile/"
+with io.BytesIO() as _stream:
+    with zipfile.ZipFile(_stream, "w") as _zip:
+        _zip.writestr(_prefix + "manifest.json", json.dumps({"Name":"Synthetic validation", "Device":{"UUID":"synthetic-device","Model":"D200"}, "Pages":{"Current":_page,"Pages":[_page]}}))
+        _zip.writestr(_prefix + "Profiles/" + _page + "/manifest.json",json.dumps({"Controllers":[{"Type":"Keypad","Actions":{"3_2":tool.new_entry(SETUP_ID)}}]}))
+    SYNTHETIC_PROFILE.write_bytes(tool.HEADER + _stream.getvalue())
+tool.write_portable_receipt(SYNTHETIC_PROFILE)
+
+if not os.environ.get("IMAGESLIDE_WINDOWS_PROFILE_FIXTURE"):
+    SOURCE = Path(_fixture_root.name) / "source.ulanziDeckProfile"
+    with io.BytesIO() as stream:
+        with zipfile.ZipFile(stream, "w") as archive:
+            archive.writestr(_prefix + "manifest.json",json.dumps({"Name":"Arkamax","Device":{"UUID":"synthetic-device","Model":"D200"},"Pages":{"Current":_page,"Pages":[_page]}}))
+            archive.writestr(_prefix + "Profiles/" + _page + "/manifest.json",json.dumps({"Controllers":[{"Type":"Encoder","Actions":{}},{"Type":"Keypad","Actions":{"3_2":{"Action":tool.BUILTIN_ACTION,"ActionID":SETUP_ID},"0_0":{"Action":"com.example.safe.action","ActionID":OTHER_SETUP_ID,"ActionParam":{"Preserve":True}}}}]}))
+        SOURCE.write_bytes(tool.HEADER + stream.getvalue())
+    TARGET = _page
+    WINDOWS_PROFILE_FIXTURE_AVAILABLE = True
+
 class DeliveryTests(unittest.TestCase):
+    def test_clone_refuses_upstream_and_unrelated_slots_even_with_force(self):
+        for action in ["com.arkamax.ulanzi.imageslide.slideshow", "com.example.unrelated.action"]:
+            with tempfile.TemporaryDirectory() as td:
+                source=Path(td)/"original.ulanziDeckProfile"
+                _, archive=tool.read_archive(SOURCE)
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream,"w") as output:
+                    for info in archive.infolist():
+                        data=archive.read(info)
+                        if "/Profiles/" in info.filename and info.filename.endswith("manifest.json"):
+                            document=json.loads(data)
+                            next(c for c in document["Controllers"] if "3_2" in c.get("Actions",{}))["Actions"]["3_2"]["Action"]=action
+                            data=json.dumps(document).encode()
+                        output.writestr(info,data)
+                source.write_bytes(tool.HEADER+stream.getvalue());before=source.read_bytes()
+                target=Path(td)/"clone.ulanziDeckProfile"
+                with self.assertRaises(tool.ProfileError):tool.patch(source,target,TARGET,force=True)
+                self.assertFalse(target.exists());self.assertEqual(source.read_bytes(),before)
 
     def _resolve_fixture(self, devices, stores, pressed_key="0_0", action_id=SETUP_ID):
         if not POWERSHELL:
@@ -57,7 +98,7 @@ class DeliveryTests(unittest.TestCase):
             return subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)], capture_output=True, text=True)
 
     @staticmethod
-    def _keypad(action="com.ulanzi.ulanzideck.smallwindow.window", setup_id=SETUP_ID, setup_key="0_0", setup_action="com.arkamax.ulanzi.imageslide.setup"):
+    def _keypad(action="com.ulanzi.ulanzideck.smallwindow.window", setup_id=SETUP_ID, setup_key="0_0", setup_action="com.ggazzeta.ulanzi.imageslidegif.setup"):
         return {"Type": "Keypad", "Actions": {"3_2": {"Action": action}, setup_key: {"Action": setup_action, "ActionID": setup_id}}}
 
     def _requested_target_fixture(self, case):
@@ -123,11 +164,11 @@ class DeliveryTests(unittest.TestCase):
             self.assertNotIn("bigbackground", json.dumps(selected[0]["entry"]).lower())
 
     def test_delivered_profile_receipt_and_action_metadata(self):
-        profile = ROOT / "ImageSlide.ulanziDeckProfile"
+        profile = SYNTHETIC_PROFILE
         receipt = json.loads(Path(str(profile) + ".receipt.json").read_text(encoding="utf-8"))
         data = profile.read_bytes()
         self.assertEqual(receipt["output_sha256"], hashlib.sha256(data).hexdigest())
-        self.assertEqual(receipt["schema"], "com.arkamax.ulanzi.imageslide.profile-artifact-receipt/v1")
+        self.assertEqual(receipt["schema"], "com.ggazzeta.ulanzi.imageslidegif.profile-artifact-receipt/v1")
         self.assertFalse({"source_package_id", "source_profile_id", "profile_id_map", "input_sha256"} & receipt.keys())
         _, z = tool.read_archive(profile)
         package_id, _, _, _, profile_ids, _ = tool.package_identity(z)
@@ -135,11 +176,11 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(receipt["package_id"], package_id)
         self.assertIn(receipt["profile_id"], profile_ids)
         self.assertEqual(receipt["action_id"], entry["ActionID"])
-        self.assertEqual(entry["Action"], "com.arkamax.ulanzi.imageslide.slideshow")
-        self.assertEqual(entry["Plugin"], {"Name": "Image Slideshow", "UUID": "com.arkamax.ulanzi.imageslide", "Version": PLUGIN_VERSION})
+        self.assertEqual(entry["Action"], "com.ggazzeta.ulanzi.imageslidegif.slideshow")
+        self.assertEqual(entry["Plugin"], {"Name": "Image Slideshow", "UUID": "com.ggazzeta.ulanzi.imageslidegif", "Version": PLUGIN_VERSION})
 
     def test_portable_profile_receipt_generation_is_deterministic(self):
-        profile = ROOT / "ImageSlide.ulanziDeckProfile"
+        profile = SYNTHETIC_PROFILE
         with tempfile.TemporaryDirectory() as td:
             first = Path(td) / "first.json"
             second = Path(td) / "second.json"
@@ -150,7 +191,7 @@ class DeliveryTests(unittest.TestCase):
     def test_profile_version_update_preserves_identity_and_other_members(self):
         with tempfile.TemporaryDirectory() as td:
             profile = Path(td) / "profile.ulanziDeckProfile"
-            shutil.copyfile(ROOT / "ImageSlide.ulanziDeckProfile", profile)
+            shutil.copyfile(SYNTHETIC_PROFILE, profile)
             _, before = tool.read_archive(profile)
             names = before.namelist()
             selected = next(item for item in tool.candidates(before) if item["action"] == tool.ACTION_UUID)
@@ -227,12 +268,12 @@ class DeliveryTests(unittest.TestCase):
             script = root / "production-shape.ps1"
             def quoted(value):
                 return str(value).replace("'", "''")
-            script.write_text(f"$ErrorActionPreference='Stop'\n$manifest='{quoted(manifest)}';$backup='{quoted(root / 'replace-backup.json')}'\n$before=[IO.File]::ReadAllBytes($manifest);$doc=Get-Content -LiteralPath $manifest -Raw -Encoding UTF8|ConvertFrom-Json\n$pads=@($doc.Controllers|Where-Object{{$_.Type-eq'Keypad'-and$null-ne$_.Actions.PSObject.Properties['3_2']}});if($pads.Count-ne1){{throw 'shape'}}\n$entry=[ordered]@{{Action='com.arkamax.ulanzi.imageslide.slideshow';ActionID=[guid]::NewGuid().ToString();ActionParam=[ordered]@{{SmallViewMode=2}};LinkedTitle=$true;Name='Image Slideshow';Plugin=[ordered]@{{Name='Image Slideshow';UUID='com.arkamax.ulanzi.imageslide';Version='0.8.0'}};State=0;ViewParam=@([ordered]@{{Icon='';IconRel='';Name='Image Slideshow'}})}}\n$pads[0].Actions|Add-Member -NotePropertyName '3_2' -NotePropertyValue $entry -Force;$temp=$manifest+'.tmp';[IO.File]::WriteAllText($temp,($doc|ConvertTo-Json -Depth 30),(New-Object Text.UTF8Encoding($false)))\n$check=Get-Content -LiteralPath $temp -Raw -Encoding UTF8|ConvertFrom-Json;if($check.Controllers[1].Actions.'3_2'.Action-ne'com.arkamax.ulanzi.imageslide.slideshow'){{throw 'temp-readback'}}\n[IO.File]::Replace($temp,$manifest,$backup);$after=Get-Content -LiteralPath $manifest -Raw -Encoding UTF8|ConvertFrom-Json;$patched=[IO.File]::ReadAllBytes($manifest)\n$restoreTemp=$manifest+'.restore';Copy-Item -LiteralPath $backup -Destination $restoreTemp;$failedPatched='{quoted(root / 'failed-patched.json')}';[IO.File]::Replace($restoreTemp,$manifest,$failedPatched)\n[pscustomobject]@{{backupMatches=([Convert]::ToBase64String([IO.File]::ReadAllBytes($backup))-eq[Convert]::ToBase64String($before));action=$after.Controllers[1].Actions.'3_2'.Action;restored=([Convert]::ToBase64String([IO.File]::ReadAllBytes($manifest))-eq[Convert]::ToBase64String($before));failedMatches=([Convert]::ToBase64String([IO.File]::ReadAllBytes($failedPatched))-eq[Convert]::ToBase64String($patched))}}|ConvertTo-Json -Compress\n", encoding="utf-8")
+            script.write_text(f"$ErrorActionPreference='Stop'\n$manifest='{quoted(manifest)}';$backup='{quoted(root / 'replace-backup.json')}'\n$before=[IO.File]::ReadAllBytes($manifest);$doc=Get-Content -LiteralPath $manifest -Raw -Encoding UTF8|ConvertFrom-Json\n$pads=@($doc.Controllers|Where-Object{{$_.Type-eq'Keypad'-and$null-ne$_.Actions.PSObject.Properties['3_2']}});if($pads.Count-ne1){{throw 'shape'}}\n$entry=[ordered]@{{Action='com.ggazzeta.ulanzi.imageslidegif.slideshow';ActionID=[guid]::NewGuid().ToString();ActionParam=[ordered]@{{SmallViewMode=2}};LinkedTitle=$true;Name='Image Slideshow';Plugin=[ordered]@{{Name='Image Slideshow';UUID='com.ggazzeta.ulanzi.imageslidegif';Version='0.8.0'}};State=0;ViewParam=@([ordered]@{{Icon='';IconRel='';Name='Image Slideshow'}})}}\n$pads[0].Actions|Add-Member -NotePropertyName '3_2' -NotePropertyValue $entry -Force;$temp=$manifest+'.tmp';[IO.File]::WriteAllText($temp,($doc|ConvertTo-Json -Depth 30),(New-Object Text.UTF8Encoding($false)))\n$check=Get-Content -LiteralPath $temp -Raw -Encoding UTF8|ConvertFrom-Json;if($check.Controllers[1].Actions.'3_2'.Action-ne'com.ggazzeta.ulanzi.imageslidegif.slideshow'){{throw 'temp-readback'}}\n[IO.File]::Replace($temp,$manifest,$backup);$after=Get-Content -LiteralPath $manifest -Raw -Encoding UTF8|ConvertFrom-Json;$patched=[IO.File]::ReadAllBytes($manifest)\n$restoreTemp=$manifest+'.restore';Copy-Item -LiteralPath $backup -Destination $restoreTemp;$failedPatched='{quoted(root / 'failed-patched.json')}';[IO.File]::Replace($restoreTemp,$manifest,$failedPatched)\n[pscustomobject]@{{backupMatches=([Convert]::ToBase64String([IO.File]::ReadAllBytes($backup))-eq[Convert]::ToBase64String($before));action=$after.Controllers[1].Actions.'3_2'.Action;restored=([Convert]::ToBase64String([IO.File]::ReadAllBytes($manifest))-eq[Convert]::ToBase64String($before));failedMatches=([Convert]::ToBase64String([IO.File]::ReadAllBytes($failedPatched))-eq[Convert]::ToBase64String($patched))}}|ConvertTo-Json -Compress\n", encoding="utf-8")
             run = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             result = json.loads(run.stdout)
             self.assertTrue(result["backupMatches"])
-            self.assertEqual(result["action"], "com.arkamax.ulanzi.imageslide.slideshow")
+            self.assertEqual(result["action"], "com.ggazzeta.ulanzi.imageslidegif.slideshow")
             self.assertTrue(result["restored"])
             self.assertTrue(result["failedMatches"])
 
@@ -245,7 +286,7 @@ class DeliveryTests(unittest.TestCase):
             root = Path(td)
             manifest = root / "manifest.json"
             original = json.dumps({"Controllers": [self._keypad()]}, separators=(",", ":")).encode()
-            patched = json.dumps({"Controllers": [self._keypad(action="com.arkamax.ulanzi.imageslide.slideshow")]}, separators=(",", ":")).encode()
+            patched = json.dumps({"Controllers": [self._keypad(action="com.ggazzeta.ulanzi.imageslidegif.slideshow")]}, separators=(",", ":")).encode()
             manifest.write_bytes(patched)
             backup_root = root / "backups"
             run = backup_root / "run-a"
@@ -253,7 +294,7 @@ class DeliveryTests(unittest.TestCase):
             backup = run / "manifest.before.json"
             backup.write_bytes(original)
             target = {"store": "ProfilesV2", "groupId": "group-a", "pageId": "page-a", "key": "3_2"}
-            receipt = {"schema": "com.arkamax.ulanzi.imageslide.setup-receipt/v1", "operation": "apply-or-repair" if case == "legacy_019" else "patch", "result": "success", "target": dict(target), "beforeSha256": hashlib.sha256(original).hexdigest(), "afterSha256": hashlib.sha256(patched).hexdigest(), "backupSha256": hashlib.sha256(original).hexdigest(), "action": "com.arkamax.ulanzi.imageslide.slideshow"}
+            receipt = {"schema": "com.ggazzeta.ulanzi.imageslidegif.setup-receipt/v1", "operation": "apply-or-repair" if case == "legacy_019" else "patch", "result": "success", "target": dict(target), "beforeSha256": hashlib.sha256(original).hexdigest(), "afterSha256": hashlib.sha256(patched).hexdigest(), "backupSha256": hashlib.sha256(original).hexdigest(), "action": "com.ggazzeta.ulanzi.imageslidegif.slideshow"}
             if case == "target_mismatch":
                 receipt["target"]["pageId"] = "page-other"
             receipt_path = run / "receipt.json"
@@ -310,7 +351,7 @@ class DeliveryTests(unittest.TestCase):
 
         def run_for(action):
             return self._resolve_fixture(devices, {"ProfilesV2": [{"id": "group-a", "name": "Arkamax", "device": "device-1", "current": "page-a", "pages": {"page-a": [self._keypad(action=action)]}}]})
-        restore = run_for("com.arkamax.ulanzi.imageslide.slideshow")
+        restore = run_for("com.ggazzeta.ulanzi.imageslidegif.slideshow")
         self.assertEqual(restore.returncode, 0, restore.stdout + restore.stderr)
         self.assertEqual(json.loads(restore.stdout)["kind"], "restore")
         refuse = run_for("com.example.unrelated")
@@ -371,7 +412,7 @@ class DeliveryTests(unittest.TestCase):
         one = dict(base, pages={"page-a": [{"Type": "Keypad", "Actions": {"1_1": {"Action": "other"}}}, self._keypad()]})
         run = self._resolve_fixture(devices, {"ProfilesV2": [one]})
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-        zero = dict(base, pages={"page-a": [{"Type": "Keypad", "Actions": {"0_0": {"Action": "com.arkamax.ulanzi.imageslide.setup", "ActionID": SETUP_ID}}}]})
+        zero = dict(base, pages={"page-a": [{"Type": "Keypad", "Actions": {"0_0": {"Action": "com.ggazzeta.ulanzi.imageslidegif.setup", "ActionID": SETUP_ID}}}]})
         run = self._resolve_fixture(devices, {"ProfilesV2": [zero]})
         self.assertEqual(run.returncode, 2)
         self.assertIn("PAGE_INVALID|SCHEMA|PAGE_READ", run.stdout)
@@ -455,7 +496,7 @@ class DeliveryTests(unittest.TestCase):
             script = root / "request.ps1"
             def quoted(value):
                 return str(value).replace("'", "''")
-            script.write_text(prefix + f"""\n$ErrorActionPreference='Stop'\n$requestRoot=Full '{quoted(request_root)}'\n$manifest=Full '{quoted(manifest)}'\n[IO.Directory]::CreateDirectory($requestRoot)|Out-Null;$now=[DateTime]::UtcNow\n$request=[ordered]@{{schema='com.arkamax.ulanzi.imageslide.setup-request/v5';pluginVersion='0.2.0';createdUtc=$now.ToString('o');manifestSha256=(Hash $manifest)}}\n$json=CanonicalJson $request;$digest=RequestHash $json;$id=[guid]::NewGuid().ToString('N');$requestFile=Under (Join-Path $requestRoot ($id+'.json')) $requestRoot;$hashFile=$requestFile+'.sha256';$tmp=$requestFile+'.tmp'\nWriteUtf8 $tmp $json;Move-Item -LiteralPath $tmp -Destination $requestFile;WriteUtf8 $hashFile ($digest+"`n")\n$pointer=[ordered]@{{schema='com.arkamax.ulanzi.imageslide.request-pointer/v1';file=[IO.Path]::GetFileName($requestFile);sha256=$digest}};WriteUtf8 (Join-Path $requestRoot 'current.json') (CanonicalJson $pointer)\n$backup=Join-Path $requestRoot 'manifest.before.json';Copy-Item $manifest $backup;$beforeHash=Hash $backup;WriteUtf8 $manifest '{{"after":true}}';$afterHash=Hash $manifest;$receipt=Join-Path $requestRoot 'receipt.json';WriteUtf8 $receipt '{{"result":"success"}}';$receiptHash=Hash $receipt\n[pscustomobject]@{{pointer=(Test-Path (Join-Path $requestRoot 'current.json'));requestHash=(Hash $requestFile);digest=$digest;backupHash=$beforeHash;afterHash=$afterHash;receiptHash=$receiptHash}}|ConvertTo-Json -Compress\n""", encoding="utf-8")
+            script.write_text(prefix + f"""\n$ErrorActionPreference='Stop'\n$requestRoot=Full '{quoted(request_root)}'\n$manifest=Full '{quoted(manifest)}'\n[IO.Directory]::CreateDirectory($requestRoot)|Out-Null;$now=[DateTime]::UtcNow\n$request=[ordered]@{{schema='com.ggazzeta.ulanzi.imageslidegif.setup-request/v5';pluginVersion='0.2.0';createdUtc=$now.ToString('o');manifestSha256=(Hash $manifest)}}\n$json=CanonicalJson $request;$digest=RequestHash $json;$id=[guid]::NewGuid().ToString('N');$requestFile=Under (Join-Path $requestRoot ($id+'.json')) $requestRoot;$hashFile=$requestFile+'.sha256';$tmp=$requestFile+'.tmp'\nWriteUtf8 $tmp $json;Move-Item -LiteralPath $tmp -Destination $requestFile;WriteUtf8 $hashFile ($digest+"`n")\n$pointer=[ordered]@{{schema='com.ggazzeta.ulanzi.imageslidegif.request-pointer/v1';file=[IO.Path]::GetFileName($requestFile);sha256=$digest}};WriteUtf8 (Join-Path $requestRoot 'current.json') (CanonicalJson $pointer)\n$backup=Join-Path $requestRoot 'manifest.before.json';Copy-Item $manifest $backup;$beforeHash=Hash $backup;WriteUtf8 $manifest '{{"after":true}}';$afterHash=Hash $manifest;$receipt=Join-Path $requestRoot 'receipt.json';WriteUtf8 $receipt '{{"result":"success"}}';$receiptHash=Hash $receipt\n[pscustomobject]@{{pointer=(Test-Path (Join-Path $requestRoot 'current.json'));requestHash=(Hash $requestFile);digest=$digest;backupHash=$beforeHash;afterHash=$afterHash;receiptHash=$receiptHash}}|ConvertTo-Json -Compress\n""", encoding="utf-8")
             run = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)], capture_output=True, text=True, check=True)
             result = json.loads(run.stdout)
             self.assertTrue(result["pointer"])
@@ -488,9 +529,9 @@ class DeliveryTests(unittest.TestCase):
     def test_installer_and_source_have_only_new_product_identity(self):
         plugin = PLUGIN
         manifest = json.loads((plugin / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["UUID"], "com.arkamax.ulanzi.imageslide")
-        self.assertEqual(manifest["Author"], "Santiago Pérez")
-        self.assertEqual([a["UUID"] for a in manifest["Actions"]], ["com.arkamax.ulanzi.imageslide.slideshow", "com.arkamax.ulanzi.imageslide.setup"])
+        self.assertEqual(manifest["UUID"], "com.ggazzeta.ulanzi.imageslidegif")
+        self.assertIn("Santiago Pérez", manifest["Author"])
+        self.assertEqual([a["UUID"] for a in manifest["Actions"]], ["com.ggazzeta.ulanzi.imageslidegif.slideshow", "com.ggazzeta.ulanzi.imageslidegif.setup"])
         self.assertEqual(list(ROOT.glob("*.ulanziPlugin")), [PLUGIN])
         self.assertTrue((PLUGIN / "manifest.json").is_file())
         installer = (ROOT / "Install-ImageSlidePlugin.ps1").read_text(encoding="utf-8")
@@ -558,14 +599,14 @@ class DeliveryTests(unittest.TestCase):
         tool_source = (ROOT / "tools" / "profile_tool.py").read_text(encoding="utf-8")
         self.assertIn("ActionParam=[ordered]@{SmallViewMode=2}", helper)
         self.assertIn('"ActionParam":{"SmallViewMode":2}', tool_source)
-        _, archive = tool.read_archive(ROOT / "ImageSlide.ulanziDeckProfile")
+        _, archive = tool.read_archive(SYNTHETIC_PROFILE)
         assignments = [item["entry"] for item in tool.candidates(archive) if item["action"] == tool.ACTION_UUID]
         self.assertEqual(len(assignments), 1)
         self.assertEqual(assignments[0]["ActionParam"], {"SmallViewMode": 2})
 
     @unittest.skipIf(os.environ.get("IMAGESLIDE_SKIP_ARTIFACT_TESTS") == "1", "release artifacts are built only after source tests pass")
     def test_packages_and_checksum_manifest_read_back(self):
-        plugin_root = "com.arkamax.ulanzi.imageslide.ulanziPlugin"
+        plugin_root = "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin"
         spec = importlib.util.spec_from_file_location("build_release_native", ROOT / "tools" / "build_release.py")
         if spec is None or spec.loader is None:
             raise RuntimeError("Unable to load tools/build_release.py")
@@ -577,7 +618,7 @@ class DeliveryTests(unittest.TestCase):
             self.assertEqual({Path(n).parts[0] for n in names}, {plugin_root})
             manifest = json.loads(archive.read(plugin_root + "/manifest.json"))
             self.assertEqual(manifest["Version"], PLUGIN_VERSION)
-            self.assertEqual(manifest["Author"], "Santiago Pérez")
+            self.assertIn("Santiago Pérez", manifest["Author"])
             for name in names:
                 if not name.endswith("/"):
                     self.assertNotIn(b"Get-FileHash", archive.read(name))
@@ -594,15 +635,15 @@ class DeliveryTests(unittest.TestCase):
                 self.assertEqual(len(dylibs), 1, f"expected exactly one libvips dylib in {package}")
             img_packages = {Path(name).parts[3] for name in names if len(Path(name).parts) > 3 and Path(name).parts[1:3] == ("node_modules", "@img")}
             self.assertEqual(img_packages, {"colour", "sharp-win32-x64", "sharp-darwin-x64", "sharp-libvips-darwin-x64", "sharp-darwin-arm64", "sharp-libvips-darwin-arm64"})
-        for name in ("ImageSlidePlugin-source.zip", "ImageSlideSetupHelper.zip"):
+        for name in ("ImageSlideGIF-source.zip", "ImageSlideGIF-SetupHelper.zip"):
             with zipfile.ZipFile(ROOT / name) as archive:
                 self.assertIsNone(archive.testzip())
-        with zipfile.ZipFile(ROOT / "ImageSlidePlugin-source.zip") as archive:
+        with zipfile.ZipFile(ROOT / "ImageSlideGIF-source.zip") as archive:
             source_names = archive.namelist()
-            self.assertIn("ImageSlidePlugin-source/tools/build_release.py", source_names)
-            self.assertIn("ImageSlidePlugin-source/tests/test_delivery.py", source_names)
-            self.assertIn("ImageSlidePlugin-source/com.arkamax.ulanzi.imageslide.ulanziPlugin/test/macos-setup.test.js", source_names)
-            self.assertFalse(any(name.startswith("ImageSlidePlugin-source/odd/") for name in source_names))
+            self.assertIn("ImageSlideGIF-source/tools/build_release.py", source_names)
+            self.assertIn("ImageSlideGIF-source/tests/test_delivery.py", source_names)
+            self.assertIn("ImageSlideGIF-source/com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin/test/macos-setup.test.js", source_names)
+            self.assertFalse(any(name.startswith("ImageSlideGIF-source/odd/") for name in source_names))
             self.assertFalse(any(name.endswith((".ulanziDeckProfile", ".ulanziDeckProfile.receipt.json")) for name in source_names))
         spec = importlib.util.spec_from_file_location("build_release_privacy", ROOT / "tools" / "build_release.py")
         if spec is None or spec.loader is None:

@@ -2,13 +2,13 @@
 """Inspect and safely clone/patch exported Ulanzi Studio Version 2 profiles."""
 from __future__ import annotations
 import argparse, copy, hashlib, io, json, re, sys, uuid, zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 HEADER = b"#Version: 2\n"
 BUILTIN_ACTION = "com.ulanzi.ulanzideck.smallwindow.window"
-PLUGIN_UUID = "com.arkamax.ulanzi.imageslide"
+PLUGIN_UUID = "com.ggazzeta.ulanzi.imageslidegif"
 ACTION_UUID = PLUGIN_UUID + ".slideshow"
-PLUGIN_VERSION = "0.8.1"
+PLUGIN_VERSION = "0.9.0"
 PROFILE_RE = re.compile(r"(?:^|/)Profiles/([^/]+)/manifest\.json$")
 PACKAGE_RE = re.compile(r"^([^/]+)\.ulanziProfile/")
 
@@ -44,6 +44,10 @@ def read_archive(path: Path):
         if bad: raise ProfileError(f"Corrupt ZIP member: {bad}")
         names = archive.namelist()
         if len(names) != len(set(names)): raise ProfileError("Duplicate ZIP member names are not supported")
+        for member in archive.infolist():
+            path=PurePosixPath(member.filename)
+            if path.is_absolute() or '..' in path.parts or '\\' in member.filename or ':' in member.filename or (member.external_attr >> 16) & 0o170000 == 0o120000:
+                raise ProfileError('Unsafe profile archive member')
         return data, archive
     except zipfile.BadZipFile as exc: raise ProfileError("Profile payload is not a valid ZIP archive") from exc
 
@@ -161,7 +165,7 @@ def portable_receipt(profile_path: Path):
     if item["profile_id"] not in profile_ids or entry.get("Plugin", {}).get("UUID") != PLUGIN_UUID:
         raise ProfileError("Delivered profile action metadata is inconsistent")
     return {
-        "schema":"com.arkamax.ulanzi.imageslide.profile-artifact-receipt/v1",
+        "schema":"com.ggazzeta.ulanzi.imageslidegif.profile-artifact-receipt/v1",
         "output_sha256":sha256(profile_data),
         "package_id":package_id,
         "profile_id":item["profile_id"],
@@ -216,7 +220,7 @@ def patch(input_path: Path, output_path: Path, profile_id: str, force: bool=Fals
     matches = [item for item in candidates(archive) if item["profile_id"] == profile_id]
     if len(matches) != 1: raise ProfileError(f"--profile-id must select exactly one candidate; matched {len(matches)}")
     selected = matches[0]
-    if selected["action"] != BUILTIN_ACTION and not force: raise ProfileError(f"Selected action is '{selected['action']}', not the built-in small-window action; use --force only after manual review")
+    if selected["action"] != BUILTIN_ACTION: raise ProfileError("Selected slot is not the built-in small-window action; upstream slideshows and unrelated actions are never overwritten, even with --force")
     old_action_ids = collect_key_values(manifests.values(), "ActionID")
     forbidden = {old_package_id, *old_profile_ids, *old_action_ids}
     new_package_id = fresh_uuid(factory, forbidden)
@@ -250,7 +254,7 @@ def patch(input_path: Path, output_path: Path, profile_id: str, force: bool=Fals
         if checked_root.get("Device") != root_manifest.get("Device"): raise ProfileError("Device binding changed during cloning")
     except Exception:
         output_path.unlink(missing_ok=True); raise
-    receipt = {"schema":"com.arkamax.ulanzi.imageslide.profile-clone-patch/v2","input_sha256":sha256(source_data),"output_sha256":sha256(validated_data),"source_package_id":old_package_id,"clone_package_id":new_package_id,"source_name":old_name,"clone_name":new_name,"source_profile_id":profile_id,"clone_profile_id":profile_map[profile_id],"profile_id_map":profile_map,"action_ids_regenerated":len(new_action_ids),"manifest_member":rename_member(selected["manifest"],old_root,new_root,profile_map),"controller_index":selected["controller_index"],"key":"3_2","new_action_id":slideshow_action_id,"semantic_diff":{"before":before,"after":after},"preserved":["Device.UUID","Device.Model","plugin UUIDs","assets and non-identity semantics"],"validation":{"header":"#Version: 2\\n","zip":"valid","read_back":"valid","package_id_collision":False,"profile_id_collisions":0,"action_id_collisions":0,"profile_references":"resolved"},"rollback":"Import the untouched original exported profile; it remains the rollback authority."}
+    receipt = {"schema":"com.ggazzeta.ulanzi.imageslidegif.profile-clone-patch/v2","input_sha256":sha256(source_data),"output_sha256":sha256(validated_data),"source_package_id":old_package_id,"clone_package_id":new_package_id,"source_name":old_name,"clone_name":new_name,"source_profile_id":profile_id,"clone_profile_id":profile_map[profile_id],"profile_id_map":profile_map,"action_ids_regenerated":len(new_action_ids),"manifest_member":rename_member(selected["manifest"],old_root,new_root,profile_map),"controller_index":selected["controller_index"],"key":"3_2","new_action_id":slideshow_action_id,"semantic_diff":{"before":before,"after":after},"preserved":["Device.UUID","Device.Model","plugin UUIDs","assets and non-identity semantics"],"validation":{"header":"#Version: 2\\n","zip":"valid","read_back":"valid","package_id_collision":False,"profile_id_collisions":0,"action_id_collisions":0,"profile_references":"resolved"},"rollback":"Import the untouched original exported profile; it remains the rollback authority."}
     receipt_path = output_path.with_name(output_path.name + ".receipt.json")
     with receipt_path.open("w",encoding="utf-8",newline="\n") as stream: stream.write(json.dumps(receipt,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps({"output":str(output_path),"receipt":str(receipt_path),"output_sha256":receipt["output_sha256"],"source_profile_id":profile_id,"clone_profile_id":profile_map[profile_id],"clone_package_id":new_package_id,"action_id":slideshow_action_id},sort_keys=True))

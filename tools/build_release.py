@@ -14,14 +14,14 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
-PLUGIN_NAME = "com.arkamax.ulanzi.imageslide.ulanziPlugin"
+PLUGIN_NAME = "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin"
 PLUGIN = ROOT / PLUGIN_NAME
 BUILD = ROOT / ".build-package"
 STAGE = BUILD / "stage" / PLUGIN_NAME
 ARTIFACTS = (
     ROOT / f"{PLUGIN_NAME}.zip",
-    ROOT / "ImageSlidePlugin-source.zip",
-    ROOT / "ImageSlideSetupHelper.zip",
+    ROOT / "ImageSlideGIF-source.zip",
+    ROOT / "ImageSlideGIF-SetupHelper.zip",
 )
 PROFILE = ROOT / "ImageSlide.ulanziDeckProfile"
 PROFILE_RECEIPT = ROOT / "ImageSlide.ulanziDeckProfile.receipt.json"
@@ -31,8 +31,6 @@ DELIVERY_FILES = (
     ROOT / "TEST-REPORT.txt",
     ROOT / "Install-ImageSlidePlugin.ps1",
     *ARTIFACTS,
-    PROFILE,
-    PROFILE_RECEIPT,
     ROOT / "store.json",
     ROOT / "resources" / "store" / "cover.jpg",
     ROOT / "resources" / "store" / "banner.png",
@@ -67,6 +65,8 @@ EXCLUDED_PARTS = {
     "docs",
     "examples",
     "install",
+    "tools",
+    "probe-output",
     ".github",
 }
 SOURCE_EXCLUDED_PARTS = {
@@ -79,6 +79,10 @@ SOURCE_EXCLUDED_PARTS = {
     "__pycache__",
     ".pytest_cache",
     "odd",
+    ".test-runtimes",
+    "probe-output",
+    "upstream-distribution",
+    ".local-profile-preparation",
 }
 EXCLUDED_FILES = {".DS_Store", ".npmignore"}
 GENERATED_NAMES = {path.name for path in ARTIFACTS} | {
@@ -174,12 +178,16 @@ def excluded(relative, package=False):
 
 
 def copy_source_tree():
+    if ROOT.resolve() not in STAGE.parent.resolve().parents or STAGE.parent.resolve() != (ROOT / '.build-package' / 'stage').absolute():
+        raise RuntimeError('Build stage resolves outside the intended workspace path')
     if STAGE.parent.exists():
         try:
             shutil.rmtree(STAGE.parent)
         except OSError as exc:
             raise RuntimeError(f"Unable to reset build stage: {STAGE.parent}") from exc
     STAGE.mkdir(parents=True)
+    shutil.copyfile(ROOT / "LICENSE", STAGE / "LICENSE")
+    shutil.copyfile(ROOT / "docs" / "THIRD_PARTY_NOTICES.md", STAGE / "THIRD_PARTY_NOTICES.md")
     for source in sorted(PLUGIN.rglob("*")):
         relative = source.relative_to(PLUGIN)
         if excluded(relative) or relative.name == "package-lock.json":
@@ -236,7 +244,7 @@ def macho_cpu(path):
 
 def verify_stage(stage=STAGE):
     manifest = read_json(stage / "manifest.json")
-    if manifest["UUID"] != "com.arkamax.ulanzi.imageslide":
+    if manifest["UUID"] != "com.ggazzeta.ulanzi.imageslidegif":
         raise RuntimeError("Plugin UUID changed")
     if manifest["OS"] != [
         {"Platform": "windows", "MinimumVersion": "10"},
@@ -302,10 +310,12 @@ def source_files():
             not path.is_file()
             or set(relative.parts) & SOURCE_EXCLUDED_PARTS
             or relative.name in GENERATED_NAMES
+            or relative.suffix in {".zip", ".ulanziDeckProfile"}
+            or relative.name.endswith(("results.txt", "baseline-python.txt"))
             or relative.name in EXCLUDED_FILES
         ):
             continue
-        result.append((path, f"ImageSlidePlugin-source/{relative.as_posix()}"))
+        result.append((path, f"ImageSlideGIF-source/{relative.as_posix()}"))
     return result
 
 
@@ -326,35 +336,15 @@ def verify_delivery_privacy(files):
                     raise RuntimeError(
                         f"Private source identity found in delivery artifact: {location}"
                     )
-    receipt = read_json(PROFILE_RECEIPT)
-    forbidden = {
-        "source_package_id",
-        "source_profile_id",
-        "profile_id_map",
-        "input_sha256",
-    }
-    if forbidden & receipt.keys():
-        raise RuntimeError("Portable profile receipt contains source provenance fields")
 
 
 def build_artifacts():
-    subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "tools" / "profile_tool.py"),
-            "receipt",
-            str(PROFILE),
-            "--output",
-            str(PROFILE_RECEIPT),
-        ],
-        check=True,
-    )
     zip_tree(ARTIFACTS[0], plugin_files())
     zip_tree(ARTIFACTS[1], source_files())
     helpers = [
         (
             path,
-            f"ImageSlideSetupHelper/{path.relative_to(PLUGIN / 'helper').as_posix()}",
+            f"ImageSlideGIF-SetupHelper/{path.relative_to(PLUGIN / 'helper').as_posix()}",
         )
         for path in (PLUGIN / "helper").rglob("*")
         if path.is_file()

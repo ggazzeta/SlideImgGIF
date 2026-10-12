@@ -1,0 +1,76 @@
+{
+  "UUID": "com.ggazzeta.ulanzi.imageslidegif",
+  "Name": "ImageSlide GIF (ggazzeta)",
+  "Description": "Independent ImageSlide fork with experimental GIF playback for D200.",
+  "Overview": "458×196 gallery with clock, weather, system panels and bounded GIF preparation. Physical GIF support unverified.",
+  "Author": "ggazzeta; based on Santiago Pérez (MIT)",
+  "Version": "0.9.0",
+  "Icon": "resources/icon.png",
+  "Category": "ggazzeta",
+  "CategoryIcon": "resources/category.png",
+  "CodePath": "plugin/app.js",
+  "Type": "JavaScript",
+  "PrivateAPI": true,
+  "SupportedInMultiActions": false,
+  "Actions": [
+    {
+      "Name": "ImageSlide GIF",
+      "Tooltip": "Rotate auto-fitted local images with optional clock, WeatherAPI forecast, and CPU/GPU/RAM panels.",
+      "Icon": "resources/action-icon.png",
+      "UUID": "com.ggazzeta.ulanzi.imageslidegif.slideshow",
+      "PropertyInspectorPath": "property-inspector/inspector.html",
+      "States": [
+        {
+          "Name": "Image Slideshow",
+          "Image": "resources/action.svg"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "DisableAutomaticStates": true,
+      "Controllers": [
+        "Keypad"
+      ],
+      "Devices": [
+        "D200"
+      ]
+    },
+    {
+      "Name": "Setup Large Display",
+      "Tooltip": "Guided install, repair, or restore for the D200 large display.",
+      "Icon": "resources/setup.png",
+      "UUID": "com.ggazzeta.ulanzi.imageslidegif.setup",
+      "PropertyInspectorPath": "property-inspector/setup.html",
+      "States": [
+        {
+          "Name": "Setup Large Display",
+          "Image": "resources/setup.png"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "DisableAutomaticStates": true,
+      "Controllers": [
+        "Keypad"
+      ],
+      "Devices": [
+        "D200"
+      ]
+    }
+  ],
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "Software": {
+    "MinVersion": "3.0.11"
+  },
+  "Detail": "Independent community fork, not an official Ulanzi plugin. Native GIF and PNG-frame playback require physical validation. Setup uses private profile storage and only exact pinned Studio builds. Prefer a cloned exported profile.",
+  "Banner": [
+    "assets/banners/banner-1.png"
+  ]
+}

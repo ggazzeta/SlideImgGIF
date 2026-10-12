@@ -1,0 +1,25 @@
+{
+  "node": "v24.21.0",
+  "platform": "win32",
+  "arch": "x64",
+  "fixture": {
+    "width": 916,
+    "height": 392,
+    "frames": 20,
+    "inputBytes": 2458140
+  },
+  "preparationMs": 2776.1032999999998,
+  "preparedBytes": 4060778,
+  "elapsedMs": 7783.790900000001,
+  "cpuMs": 3141,
+  "peakRssMiB": 153.84765625,
+  "eventLoopP99Ms": 16.121855,
+  "frameBackend": {
+    "fpsCap": 10,
+    "contexts": 2,
+    "frames": 97,
+    "drops": 0,
+    "averageCadenceMs": 102.15998163265304,
+    "socket": "in-memory accepting fake; no Studio/device responsiveness measurement"
+  }
+}

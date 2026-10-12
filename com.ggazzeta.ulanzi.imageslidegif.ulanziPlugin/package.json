@@ -1,0 +1,17 @@
+{
+  "name": "ggazzeta-ulanzi-imageslidegif",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node plugin/app.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.12.2"
+  },
+  "dependencies": {
+    "sharp": "0.35.5",
+    "ws": "8.21.3"
+  }
+}

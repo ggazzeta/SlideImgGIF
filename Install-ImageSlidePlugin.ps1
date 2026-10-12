@@ -27,23 +27,24 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ImageSlidePlug
 #>
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
-    [string]$StudioExecutable
+    [string]$StudioExecutable,
+    [string]$ProfileFile
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$PluginName = 'com.arkamax.ulanzi.imageslide.ulanziPlugin'
+$PluginName = 'com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin'
 $PluginZip = Join-Path $PSScriptRoot ($PluginName + '.zip')
-$ProfileFile = Join-Path $PSScriptRoot 'ImageSlide.ulanziDeckProfile'
+# Optional profile must be an independently prepared clone with its own checksum. No bundled personal profile.
 $SumsFile = Join-Path $PSScriptRoot 'SHA256SUMS.txt'
 $StudioExeName = 'UlanziDeck.exe'
 $StudioFolderCandidates = @('C:\Program Files (x86)\Ulanzi Studio', 'C:\Program Files\Ulanzi Studio', 'C:\Program Files (x86)\UlanziDeck', 'C:\Program Files\UlanziDeck')
-$ExpectedPluginUuid = 'com.arkamax.ulanzi.imageslide'
-$ExpectedActionUuid = 'com.arkamax.ulanzi.imageslide.slideshow'
-$ExpectedSetupUuid = 'com.arkamax.ulanzi.imageslide.setup'
+$ExpectedPluginUuid = 'com.ggazzeta.ulanzi.imageslidegif'
+$ExpectedActionUuid = 'com.ggazzeta.ulanzi.imageslidegif.slideshow'
+$ExpectedSetupUuid = 'com.ggazzeta.ulanzi.imageslidegif.setup'
 $ExpectedCodePath = 'plugin/app.js'
-$ExpectedPluginVersion = '0.8.1'
+$ExpectedPluginVersion = '0.9.0'
 
 function Get-NormalizedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -206,14 +207,15 @@ try {
     if (-not $StudioExe -or -not (Test-Path -LiteralPath $StudioExe -PathType Leaf)) { throw "Ulanzi Studio was not found. Install Ulanzi Studio, or pass -StudioExecutable with the full path to $StudioExeName." }
 
     $pluginHash = Assert-ArtifactHash $PluginZip
-    $profileHash = Assert-ArtifactHash $ProfileFile
+    $profileHash = $null
+    if ($ProfileFile) { $ProfileFile = Get-NormalizedPath $ProfileFile; $profileHash = Assert-ArtifactHash $ProfileFile }
     $appDataRoot = Get-NormalizedPath $env:APPDATA
     $ulanziRoot = Assert-PathUnderRoot -Path (Join-Path $appDataRoot 'Ulanzi\UlanziDeck') -Root $appDataRoot
     $pluginRoot = Assert-PathUnderRoot -Path (Join-Path $ulanziRoot 'Plugins') -Root $ulanziRoot
     $destination = Assert-PathUnderRoot -Path (Join-Path $pluginRoot $PluginName) -Root $pluginRoot
-    $backupRoot = Assert-PathUnderRoot -Path (Join-Path $pluginRoot '_arkamax_imageslide_backups') -Root $pluginRoot
+    $backupRoot = Assert-PathUnderRoot -Path (Join-Path $pluginRoot '_ggazzeta_imageslidegif_backups') -Root $pluginRoot
     $token = [guid]::NewGuid().ToString('N')
-    $stagingRoot = Assert-PathUnderRoot -Path (Join-Path $pluginRoot ('.arkamax-imageslide-staging-' + $token)) -Root $pluginRoot
+    $stagingRoot = Assert-PathUnderRoot -Path (Join-Path $pluginRoot ('.ggazzeta-imageslidegif-staging-' + $token)) -Root $pluginRoot
 
     Assert-ZipEntriesSafe -ZipPath $PluginZip -StagingRoot $stagingRoot
     Write-Host "Validated plugin SHA-256: $pluginHash"
@@ -263,6 +265,7 @@ try {
 
     $association = Get-VerifiedProfileAssociation -ExpectedExecutable $StudioExe
     if ($PSCmdlet.ShouldProcess($StudioExe, 'Start Ulanzi Studio normally')) { Start-Process -FilePath $StudioExe -WindowStyle Normal }
+    if (-not $ProfileFile) { Write-Host "PASS: independent GIF plugin installed. Profile assignment remains a separate approved operation."; exit 0 }
     if ($association) {
         if ($PSCmdlet.ShouldProcess($ProfileFile, "Start profile import using verified association $($association.ProgId)")) { Start-Sleep -Seconds 2; Start-Process -FilePath $ProfileFile -WindowStyle Normal }
         Write-Host 'PASS: plugin installed and the patched-profile import handoff was started through the verified Windows association.'
@@ -271,7 +274,7 @@ try {
     else {
         Write-Host 'PARTIAL: plugin installed and Ulanzi Studio started, but no verified .ulanziDeckProfile association was found.'
         Write-Host "Import this NEW independent clone manually: $ProfileFile"
-        Write-Host 'Select "Image Slideshow". Remove or ignore any older patched copy, but do not overwrite or delete the original "Arkamax" profile.'
+        Write-Host 'Select your independent GIF clone; retain the original exported profile and its restore authority.'
     }
     exit 0
 }
@@ -281,7 +284,7 @@ catch {
         if ($deployed -and $destination -and (Test-Path -LiteralPath $destination)) {
             $safePluginRoot = Get-NormalizedPath $pluginRoot
             [void](Assert-PathUnderRoot -Path $destination -Root $safePluginRoot)
-            $rollbackRoot = Assert-PathUnderRoot -Path (Join-Path $safePluginRoot '_arkamax_imageslide_backups') -Root $safePluginRoot
+            $rollbackRoot = Assert-PathUnderRoot -Path (Join-Path $safePluginRoot '_ggazzeta_imageslidegif_backups') -Root $safePluginRoot
             [System.IO.Directory]::CreateDirectory($rollbackRoot) | Out-Null
             $failedPath = Assert-PathUnderRoot -Path (Join-Path $rollbackRoot ($PluginName + '-failed-' + [guid]::NewGuid().ToString('N'))) -Root $rollbackRoot
             Move-Item -LiteralPath $destination -Destination $failedPath

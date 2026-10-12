@@ -6,3 +6,10 @@
 .build-package/
 # Local Pi runtime state
 .atl/
+
+.test-runtimes/
+**/probe-output/
+*results.txt
+baseline-python.txt
+upstream-distribution/
+.local-profile-preparation/
