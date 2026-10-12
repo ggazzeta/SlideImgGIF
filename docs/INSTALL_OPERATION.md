@@ -1,8 +1,8 @@
 # Prepared operation — installation has not been approved or performed
 
 Reviewable package: `com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin.zip`, version
-0.9.0, 27,671,577 bytes, SHA-256
-`5a91219ce1621defe4c0ac817868905b6f019551b9db38520329c4275cc8f507`.
+0.9.0, 27,671,632 bytes, SHA-256
+`609e79f69c7d2528d39a6ca4d47ec2f620a1baf56441c09ffd3bd294a1a42a45`.
 
 Proposed scope: create only
 `%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin`
