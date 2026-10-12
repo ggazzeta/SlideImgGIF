@@ -1,9 +1,9 @@
 {
     "date":  "2026-10-12",
-    "version":  "0.9.0",
+    "version":  "0.10.0",
     "fork":  "https://github.com/ggazzeta/SlideImgGIF",
-    "branch":  "main",
-    "runtimeSourceRevision":  "df6d72c49cb68cddb1cea6d7cb6b7b7133ba791a",
+    "branch":  "feat/independent-profile-settings",
+    "runtimeSourceRevision":  "f3a5811eba217cce43bb058d6b528c52f57956aa",
     "upstreamRevision":  "cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8",
     "pluginFolder":  "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin",
     "sharp":  "0.35.5",
@@ -17,7 +17,7 @@
                             "darwin-x64",
                             "darwin-arm64"
                         ],
-    "hardwareAnimation":  "unverified",
+    "hardwareAnimation":  "0.9.0 PNG frames user-confirmed; 0.10.0 profile update not physically tested",
     "installed":  false,
     "personalProfilesShipped":  false
 }

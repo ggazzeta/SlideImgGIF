@@ -7,6 +7,7 @@
   "bundledSharpWorkerDecode": "passed",
   "bundledProtocolNativeOnce": "passed",
   "bundledStaticReplacement": "passed",
+  "bundledProfileIsolationAndSDKReadback": "passed with two synthetic profiles and fake socket",
   "installedStudio": false,
-  "physicalAnimation": "unverified"
+  "physicalAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 profile migration not physically tested"
 }
