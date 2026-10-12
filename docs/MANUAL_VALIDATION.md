@@ -1,7 +1,9 @@
 # Studio and physical D200 validation
 
-Status: hardware available for user observation; no installed change or device
-packet delivery has been approved or performed. Simulator/browser, Studio preview,
+Current result: the user reports Native GIF animates in Studio but freezes on the
+physical D200; PNG frames animates on the physical device. The approved plugin-only
+installation is complete. Synthetic probe, sustained measurements and the remaining
+lifecycle cases are pending. See HARDWARE_OBSERVATIONS.md. Simulator/browser, Studio preview,
 code-0 replies and successful sends do not prove physical animation. Fill separate
 Studio and D200 results; record Studio executable version/hash, firmware, connection
 type, OS, backend and exact context. Do not record keys, personal paths or image payloads.
@@ -34,12 +36,12 @@ type, OS, backend and exact context. Do not record keys, personal paths or image
 | Case | Studio preview | Physical D200 | Timing/notes |
 |---|---|---|---|
 | Normal control key native GIF | Pending | Pending | 200/400/600 ms |
-| Actual `3_2` native GIF | Pending | Pending | Same fixture |
+| Actual `3_2` native GIF | Animates (user report) | Frozen frame (user report) | User media; synthetic fixture/timing not confirmed |
 | Ten-second direct PNG replacement | Pending | Pending | Stale GIF must cease |
 | Page away / return | Pending | Pending | New activation begins playback |
 | Socket loss / reconnect | Pending | Pending | No local pump while disconnected |
 | Finite GIF loop | Pending | Pending | Holds final frame until dwell |
-| Selected PNG-frame backend | Pending | Pending | Record drops/cadence |
+| Selected PNG-frame backend | Not separately reported | Animates (user report) | Basic playback only; measure drops/cadence |
 
 ## Sustained regression and measurements
 

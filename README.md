@@ -2,7 +2,9 @@
 
 GIF preparation and three playback choices for the D200 458×196 large display,
 preserving the static slideshow, clock, WeatherAPI and CPU/GPU/RAM panels.
-**Physical animation support is unverified.** This is a community fork, not an
+**The user confirms PNG-frame animation works on the tested D200; Native GIF
+animates in Studio but freezes on that device.** See [hardware observations](docs/HARDWARE_OBSERVATIONS.md)
+for the limited test scope. This is a community fork, not an
 official Ulanzi plugin.
 
 Fork: https://github.com/ggazzeta/SlideImgGIF. Based on
@@ -25,6 +27,10 @@ selection for same-size/same-mtime replacements.
 * **PNG frames**: explicit experimental fallback, one shared monotonic scheduler,
   up to 10 FPS, backpressure and outdated-frame skipping via direct image delivery.
 * **Static poster**: safe GIF first-frame fallback.
+
+For the tested D200, select **GIF playback → PNG frames**. Version 0.9.0 defaults
+to Native GIF for new settings, so this selection is explicit. No reinstall is
+needed. Sustained timing/lifecycle validation and macOS animation remain pending.
 
 Media dwell time remains the slideshow interval (minimum five seconds). Changing
 items may end a GIF mid-cycle. Gallery wrap-around and embedded GIF loops are

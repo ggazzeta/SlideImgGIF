@@ -61,6 +61,17 @@ cap awaiting physical observations.
 
 ## Hardware and installed setup evidence
 
+Update after installation and user testing: the approved plugin-only installation
+was completed; all 197 installed files matched the approved ZIP, Studio reopened
+and the fork runtime was running. The agent did not import profiles, invoke Setup
+or alter audio. The user then confirmed Native GIF animates in Studio but leaves
+a frozen frame on the physical D200, and that selecting PNG frames makes the
+physical animation work. Recommend PNG frames on this tested setup. This is basic
+user-confirmed playback, not a measured sustained/lifecycle validation. See
+[hardware observations](HARDWARE_OBSERVATIONS.md).
+
+The following paragraph records the initial build's pre-installation state:
+
 D200 is available for user observation. Studio 3.3.9.0 executable hash matches an
 exact helper pin. No plugin install/import/profile mutation, Studio/device GIF
 delivery, audio change or process termination has occurred. Clone preparation from

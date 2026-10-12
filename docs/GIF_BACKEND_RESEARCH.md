@@ -29,6 +29,12 @@ Studio/device delivery has been performed.
 
 ## Evidence boundary
 
+Subsequent physical feedback on 2026-10-12: with Native GIF selected, Studio
+animates while the D200 shows a frozen frame. After deliberately selecting PNG
+frames, the user confirms physical animation works. Use the frame backend on this
+tested setup. See [hardware observations](HARDWARE_OBSERVATIONS.md) for the scope
+and unmeasured cases; the earlier proposals above are retained as research history.
+
 Automated packets, decoded pixels and fake sockets establish processing/transport behavior only. Browser/simulator/Studio preview cannot establish D200 animation. Native cessation on deactivation is not documented: send a static poster on a live deactivation; socket loss prevents delivery. Verify the resulting physical behavior before recommending native playback.
 
 Project limits are performance policies, not Ulanzi specifications. Begin at 8 MiB input, 2048 per dimension, 200 frames, 20 million decoded RGBA pixels, 20 million normalized pixels, 16 MiB prepared output, 64 MiB prepared cache, one worker job, eight queued jobs and 15 seconds per job. Frame candidate: 10 FPS and 1 MiB socket backlog, with outdated frames skipped. These defaults need device measurements.

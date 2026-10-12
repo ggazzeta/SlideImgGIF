@@ -30,3 +30,9 @@ The user confirms D200 is available for observation. No native/device delivery
 has occurred. Current saved-profile clone preparation was refused because of an
 unresolved external ProfileUUID reference; a complete official original export
 is needed rather than relaxing that guard. Original installed profiles are intact.
+
+Later installation/physical observations: the approved plugin-only installation
+completed with 197/197 package files matching. The user reports Native GIF animates
+in Studio but freezes on the D200, while PNG frames works on the physical display.
+Recommend PNG frames on this tested setup. This does not verify other firmware,
+all lifecycle/performance cases or macOS. See HARDWARE_OBSERVATIONS.md.
