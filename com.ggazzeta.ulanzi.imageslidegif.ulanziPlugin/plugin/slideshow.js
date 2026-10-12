@@ -111,13 +111,17 @@ export async function enumerateFolder(folderPath, sort = "name", fsApi = { lstat
     const cacheKey=`${item.file}\0${item.size}\0${item.modifiedMs}`;cacheKeys.add(cacheKey);
     try {
       let slide;if(cache.has(cacheKey))slide=cache.get(cacheKey);else{slide=await imageLoader(item.file);cache.set(cacheKey,slide)}
-      if(!slide)throw new Error("Cached image rejection");
+      if(slide?.rejection)throw new Error(slide.rejection);
+      if(!slide)throw new Error('Previously rejected media; use Refresh folder to retry');
       if (signatures.has(slide.signature)) continue;
       const bytes=slide.preparedBytes??Buffer.byteLength(slide.dataUri);
       if(retainedBytes+bytes>32*1024*1024){cache.delete(cacheKey);throw new Error('Gallery memory budget reached; use a smaller folder');}
       retainedBytes+=bytes;
       signatures.add(slide.signature); slides.push(slide);
-    } catch(error) { cache.set(cacheKey,null);errors.push(error.message || 'Invalid media; refresh after replacing it'); }
+    } catch(error) {
+      const rejection=error.message || 'Invalid media; refresh after replacing it';
+      cache.set(cacheKey,{rejection});errors.push(`${item.name}: ${rejection}`);
+    }
   }
   return { slides, rejected: errors.length, errors:[...new Set(errors)].slice(0,3), resized: slides.filter((slide) => slide.resized).length, cacheKeys };
 }
