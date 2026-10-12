@@ -188,6 +188,7 @@ export class SlideshowService {
     } catch (error) { this.setStatus("error",error.message,0); }
   }
   async applySettings(settings, renderNow) {
+    if(Object.keys(settings).length===Object.keys(this.settings).length && Object.keys(settings).every(key=>settings[key]===this.settings[key])){this.broadcastStatus();return;}
     const settingsGeneration=++this.lifecycleGeneration;this.scanGeneration++;this.animation.close();mediaPreparer.cancel();this.lastSignature.clear();
     const folderChanged=settings.folderPath!==this.settings.folderPath || settings.sort!==this.settings.sort;
     const weatherLocationChanged=settings.weatherLocation!==this.settings.weatherLocation, weatherUnitsChanged=settings.weatherUnits!==this.settings.weatherUnits, wasWeatherEnabled=this.settings.showWeather, willWeatherBeEnabled=settings.showWeather, weatherChanged=settings.weatherApiKey!==this.settings.weatherApiKey||weatherLocationChanged||wasWeatherEnabled!==willWeatherBeEnabled;

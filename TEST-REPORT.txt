@@ -3,7 +3,7 @@ Upstream cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8; fork ggazzeta/SlideImgGIF.
 
 Actual baseline: Node 22.14.0, 58/59 pass (one Windows temp-cleanup ENOTEMPTY);
 Python 34 total, 32 pass, 2 optional skips; npm audit zero vulnerabilities.
-Current Node suite: 76/76 pass on Node 20.12.2 and 24.21.0, no skips.
+Current Node suite: 77/77 pass on Node 20.12.2 and 24.21.0, no skips.
 Python final suite: 35/35 pass including artifacts, no skips.
 Universal native stage: exact lock integrity, PE/Mach-O architecture checks passed.
 Packaged Node 20.12.2 Windows x64 smoke: worker decode, native once, PNG replacement pass.

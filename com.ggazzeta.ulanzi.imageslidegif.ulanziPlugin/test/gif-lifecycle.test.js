@@ -42,6 +42,12 @@ test('late system probe results are rejected across settings/lifecycle changes',
   release({cpu:50,gpu:20,ram:30,ramUsed:100,ramTotal:300});assert.equal(await probe,false);assert.equal(r.service.systemSlide,null);assert.equal(r.packets.length,count);r.service.close();
 });
 
+test('unchanged global settings response does not stop or replay an activated native GIF',async()=>{
+  const r=serviceRuntime();r.service.settings.folderPath='C:/synthetic';r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});
+  const count=r.packets.length;await r.service.applySettings(normalizeSettings({...r.service.settings}),true);
+  assert.equal(r.packets.length,count);assert.equal(r.service.animation.contexts.get(r.context).media,media);r.service.close();
+});
+
 test('transport reconnect is bounded, registers again, resets outer defaults and shutdown cancels retry',()=>{
   const sockets=[],timers=new Map();let id=0;
   class Socket extends EventEmitter {static OPEN=1;constructor(){super();sockets.push(this);}send(x){this.last=JSON.parse(x);}close(){this.emit('close');}}

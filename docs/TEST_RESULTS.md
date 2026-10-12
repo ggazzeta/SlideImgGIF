@@ -10,7 +10,7 @@ were added to temporary fixture removal; no production safety check was relaxed.
 
 ## Implemented automated validation
 
-76 Node tests pass, zero skipped/failing, on exact **20.12.2** and current LTS
+77 Node tests pass, zero skipped/failing, on exact **20.12.2** and current LTS
 **24.21.0** Windows x64. Official runtime archives were SHA-256 checked before use.
 See TEST_RUNTIMES.json. Coverage includes static/information regressions, synthetic
 GIF header/content/limits/truncation, uppercase/mixed folders, full-content hashes,

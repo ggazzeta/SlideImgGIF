@@ -16,6 +16,7 @@ const packets=[];class Socket {static OPEN=1;}
 const client=new UlanziProtocolClient({WebSocketImpl:Socket});client.websocket={readyState:1,bufferedAmount:0,send:packet=>packets.push(JSON.parse(packet))};
 const service=new SlideshowService({client,configuration:await loadConfiguration(stage),logger(){}});
 service.slides=[media];const context=`${ACTION_UUID}___3_2___packaged-instance`;service.add({uuid:ACTION_UUID,context});service.renderAll();
+await service.applySettings({...service.settings},true);
 assert.equal(packets.filter(p=>p.cmd==='state'&&p.param.statelist[0].type===3).length,1);service.close();
 assert.equal(packets.filter(p=>p.cmd==='state').at(-1).param.statelist[0].type,1);
 const report={date:'2026-10-12',node:process.version,platform:process.platform,arch:process.arch,source:'integrity/architecture-verified release stage',bundledSharpWorkerDecode:'passed',bundledProtocolNativeOnce:'passed',bundledStaticReplacement:'passed',installedStudio:false,physicalAnimation:'unverified'};
