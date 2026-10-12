@@ -1,39 +1,43 @@
-# Prepared 0.10.0 replacement — not installed
+# Prepared 0.10.1 correction ? not installed
 
-Package: `com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin.zip`, version 0.10.0,
-27,682,588 bytes, SHA-256 `9d92d98bc94451a87d51fcbd657191800c32bf487a8f0cd01f83db2ab0a77315`.
+Package: `com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin.zip`, version 0.10.1,
+27,683,473 bytes, SHA-256 `f5f1be835263ce91dbdae30bcda010b962532a7a0ca8095aa915a44f4b3b0c1f`.
+Runtime source: `8b5b399f7eb52422a99b1c1e41b32afe7a01d0ef`, branch `fix/profile-display-ownership`.
 
-The user requested fully independent profile settings. This operation replaces
-only the installed 0.9.0 fork folder under
-`%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin`
-with the reviewed package after the user closes Studio manually. Reverify the
-installed fork/version/inventory before replacement and preserve any unexpected
-new work. The installer stages/readbacks the package, preserves a timestamped
-fork-folder backup, rolls back on failure, and opens Studio normally. It never
-terminates Studio or modifies its executable.
+The user reported that 0.10.0 played folders from multiple profiles on the same
+physical D200. A read-only inspection confirmed two distinct folders remain saved
+in two profile leaves. This correction gives the physical large-display slot one
+owner per D200 device, stops old profile/page frame work before replacement,
+rejects late activations, parses false active strings correctly, and prevents
+foreign Inspector packets from retargeting settings. It preserves the current
+profile preferences and their private backups. See TEST_RESULTS.md and
+PROFILE_SETTINGS_MIGRATION.md for evidence and the private metadata boundary.
 
-On activation, this fork's new runtime backs up its own existing preferences
-privately, retains the flat shared snapshot for rollback, and stores independent
-profile leaves through the SDK global-settings contract with readback. Every
-profile starts from a copy of the last shared preferences; selecting another
-folder/timing/backend/information configuration then changes only that profile.
-See PROFILE_SETTINGS_MIGRATION.md for private backup locations and exact behavior.
+After explicit approval and manual Studio closure, replace **only** the installed
+0.10.0 fork folder under
+`%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin`.
+Verify the installed 0.10.0 inventory against its approved ZIP first; preserve
+unexpected changes rather than overwriting them. The installer stages, validates
+and reads back the new files, preserves a timestamped fork-folder backup, rolls
+back deployment failure, and starts Studio normally. It never terminates Studio.
 
-This does not import a profile, regenerate IDs, change saved page/action parameters,
-alter SmallViewMode:2, invoke Setup, run the isolated GIF probe or touch other
-buttons/plugins. Kenku, its release, Voicemeeter, Focusrite and Windows audio
-routing are untouched. Existing large-display assignments stay in place. Basic
-PNG-frame animation was user-confirmed on 0.9.0; the new installed migration and
-actual profile switching remain manual-validation steps after replacement.
+No profile import, saved layout/action parameter write, Setup invocation, GIF probe,
+Studio binary change, other plugin replacement or audio adjustment is included.
+Kenku, Voicemeeter, Focusrite and Windows audio routing remain outside this operation.
+Existing SmallViewMode:2 assignments and exact Setup executable pins remain intact.
+The only helper lineage change explicitly accepts known prior fork 0.10.0 metadata
+alongside 0.9.0, with the same exact identity/parameter/integrity checks.
 
-Rollback: manually close Studio and restore the timestamped **fork** folder backup.
-0.9.0 reads the retained flat shared configuration. Preserve the new private
-preferences backups; 0.9.0 can drop the newer registry if its settings are edited.
-Restore only this fork's backed-up preferences via its SDK route if needed, never
-overwrite Studio's entire global settings file. That recovery is a separate
-concrete approved operation. Setup backup/receipt routes and exact build pins
-remain unchanged, with only known prior fork 0.9.0 metadata explicitly supported.
+Rollback: close Studio manually and restore the new timestamped **fork** folder
+backup. The preference registry uses the same schema and is readable by 0.10.0;
+that build retains the reported playback defect. Preserve the separate original
+0.9.0 backup and private preference snapshots. A 0.9.0 rollback reads the original
+shared configuration. Do not overwrite the whole Studio global settings file.
 
-Replacement requires approval under the user's section 3: “Installing/replacing
-plugins … requires my explicit approval of the concrete prepared operation.” The
-earlier approval covered the specific 0.9.0 installation, not this new artifact.
+Physical switching on 0.10.1 remains a manual validation step. Check distinct
+folders in A/B, stay on each for several dwell intervals, return to A, close the
+Inspector, change pages, restart Studio and reconnect the D200.
+
+Approval is required by the user's section 3: ?Installing/replacing plugins ?
+requires my explicit approval of the concrete prepared operation.? The prior
+approval covered the specific 0.10.0 artifact; this new ZIP needs approval.

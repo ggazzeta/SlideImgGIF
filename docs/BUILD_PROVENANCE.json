@@ -1,23 +1,23 @@
 {
-    "date":  "2026-10-12",
-    "version":  "0.10.0",
-    "fork":  "https://github.com/ggazzeta/SlideImgGIF",
-    "branch":  "feat/independent-profile-settings",
-    "runtimeSourceRevision":  "f3a5811eba217cce43bb058d6b528c52f57956aa",
-    "upstreamRevision":  "cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8",
-    "pluginFolder":  "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin",
-    "sharp":  "0.35.5",
-    "ws":  "8.21.3",
-    "nodeTested":  [
-                       "20.12.2",
-                       "24.21.0"
-                   ],
-    "packagedTargets":  [
-                            "windows-x64",
-                            "darwin-x64",
-                            "darwin-arm64"
-                        ],
-    "hardwareAnimation":  "0.9.0 PNG frames user-confirmed; 0.10.0 profile update not physically tested",
-    "installed":  false,
-    "personalProfilesShipped":  false
+  "date": "2026-10-12",
+  "version": "0.10.1",
+  "fork": "https://github.com/ggazzeta/SlideImgGIF",
+  "branch": "fix/profile-display-ownership",
+  "runtimeSourceRevision": "8b5b399f7eb52422a99b1c1e41b32afe7a01d0ef",
+  "upstreamRevision": "cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8",
+  "pluginFolder": "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin",
+  "sharp": "0.35.5",
+  "ws": "8.21.3",
+  "nodeTested": [
+    "20.12.2",
+    "24.21.0"
+  ],
+  "packagedTargets": [
+    "windows-x64",
+    "darwin-x64",
+    "darwin-arm64"
+  ],
+  "hardwareAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 profile playback defect reported; 0.10.1 physical switching pending",
+  "installed": false,
+  "personalProfilesShipped": false
 }
