@@ -36,4 +36,4 @@ CACHE_*.json reports. Physical 0.11.0 playback/profile switching, sustained CPU,
 memory, frame cadence and Studio responsiveness remain manual validation steps.
 No store submission or hardware-verified release claim is included.
 
-Final reviewed ZIP hash/size and source revision will be recorded after packaging.
+Reviewed package: `com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin.zip`, 27,691,764 bytes, SHA-256 `7e990e634ac36fa048c6fffd2346319e9bd05a4a390aa2fe6485f760f63d4740`. Runtime source revision: `24230bb2b7b10f0e80cef441911d97e50aeca8a8`, branch `feat/bounded-png-media-cache`. The previous installation approval covered 0.10.1, not this new artifact.

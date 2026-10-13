@@ -1,9 +1,9 @@
 {
-  "date": "2026-10-12",
-  "version": "0.10.1",
+  "date": "2026-10-13",
+  "version": "0.11.0",
   "fork": "https://github.com/ggazzeta/SlideImgGIF",
-  "branch": "fix/profile-display-ownership",
-  "runtimeSourceRevision": "8b5b399f7eb52422a99b1c1e41b32afe7a01d0ef",
+  "branch": "feat/bounded-png-media-cache",
+  "runtimeSourceRevision": "24230bb2b7b10f0e80cef441911d97e50aeca8a8",
   "upstreamRevision": "cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8",
   "pluginFolder": "com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin",
   "sharp": "0.35.5",
@@ -17,7 +17,13 @@
     "darwin-x64",
     "darwin-arm64"
   ],
-  "hardwareAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 profile playback defect reported; 0.10.1 physical switching pending",
+  "hardwareAnimation": "0.9.0 basic PNG frames user-confirmed; 0.10.1 installed; 0.11.0 cache/optimization physical validation pending",
   "installed": false,
-  "personalProfilesShipped": false
+  "personalProfilesShipped": false,
+  "windowsCodecVersions": {
+    "vips": "8.18.7",
+    "png": "1.6.58",
+    "tiff": "4.7.2"
+  },
+  "nodeTestsPerRuntime": 107
 }
