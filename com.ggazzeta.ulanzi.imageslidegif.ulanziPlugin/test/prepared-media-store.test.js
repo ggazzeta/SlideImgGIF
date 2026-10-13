@@ -18,7 +18,7 @@ async function fixture(options={}){const root=await mkdtemp(join(tmpdir(),'png-c
 test('real worker stores binary PNG packs once; shared reads and a new cache instance reuse them without decoding',async()=>{
   const f=await fixture();try{
     const input=fixtureGif(),key=hash(input),media=await f.preparer.prepare(input,key);assert.equal(media.gifdata,undefined);assert.equal(f.preparer.stats.prepares,1);
-    assert.equal(typeof media.frames[0],'object');const [a,b]=await Promise.all([media.getFrame(0),media.getFrame(0)]);assert.equal(a,b);assert.equal(f.store.stats.frameReads,1);
+    assert.equal(typeof media.frames[0],'object');const firstRead=media.getFrame(0);assert.equal(f.store.leases.has(key),true);const [a,b]=await Promise.all([firstRead,media.getFrame(0)]);assert.equal(f.store.leases.has(key),false);assert.equal(a,b);assert.equal(f.store.stats.frameReads,1);
     const png=Buffer.from(a.split(',')[1],'base64'),metadata=await sharp(png).metadata();assert.equal(metadata.width,458);assert.equal(metadata.height,196);
     await f.preparer.prepare(input,key);assert.equal(f.preparer.stats.prepares,1);assert.equal(f.store.stats.frameReads,1);
     const reopened=new PreparedMediaStore({root:f.store.root});const cached=await reopened.lookup(key);assert.ok(cached);assert.equal(await cached.getFrame(0),a);assert.equal((await readdir(f.store.root)).filter(name=>name.startsWith('.pending')).length,0);

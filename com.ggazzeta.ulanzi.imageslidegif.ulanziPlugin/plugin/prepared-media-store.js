@@ -77,7 +77,8 @@ export class PreparedMediaStore {
     if(this.index.has(stage.key)){await this.abort(stage);const cached=await this.lookup(stage.key);if(!cached)throw new Error('Prepared media is still in use; switch media and refresh');return cached;}
     await rename(stage.path,this.child(stage.key));this.index.set(stage.key,{bytes,last:Date.now()});this.diskBytes+=bytes;record.dataUri=`data:image/png;base64,${poster.toString('base64')}`;this.metadata.set(stage.key,record,Buffer.byteLength(text)+Buffer.byteLength(record.dataUri));return this.attach(record);
   }
-  attach(record){return {...record,retainedBytes:Buffer.byteLength(record.dataUri)+record.frames.length*160,getFrame:index=>this.frameData(record,index).catch(error=>{if(error.code!=='CACHE_BUSY'){this.invalid.add(record.signature);this.metadata.delete(record.signature);}throw error;}),acquire:()=>{const epoch=this.epoch;this.leases.set(record.signature,(this.leases.get(record.signature)||0)+1);let done=false;return ()=>{if(done)return;done=true;if(epoch!==this.epoch)return;const count=this.leases.get(record.signature)||0;if(count<=1)this.leases.delete(record.signature);else this.leases.set(record.signature,count-1);};}};}
+  attach(record){return {...record,retainedBytes:Buffer.byteLength(record.dataUri)+record.frames.length*160,getFrame:index=>this.frameData(record,index).catch(error=>{if(error.code!=='CACHE_BUSY'){this.invalid.add(record.signature);this.metadata.delete(record.signature);}throw error;}),acquire:()=>this.lease(record.signature)};}
+  lease(key){const epoch=this.epoch;this.leases.set(key,(this.leases.get(key)||0)+1);let done=false;return ()=>{if(done)return;done=true;if(epoch!==this.epoch)return;const count=this.leases.get(key)||0;if(count<=1)this.leases.delete(key);else this.leases.set(key,count-1);};}
   async lookup(key){
     if(!HASH.test(key))throw new Error('Invalid media identity');await this.initialize();if(!this.index.has(key)||this.invalid.has(key))return null;
     let record=this.metadata.get(key);
@@ -91,13 +92,13 @@ export class PreparedMediaStore {
   async frameData(record,index){
     const frame=record.frames[index];if(!frame)throw new Error('Invalid frame index');const cacheKey=frame.hash,uri=this.uris.get(cacheKey);if(uri)return uri;
     if(this.pending.has(cacheKey))return this.pending.get(cacheKey);if(this.reads>=this.policy.reads){const error=new Error('Frame read budget busy');error.code='CACHE_BUSY';throw error;}
-    this.reads++;const operation=(async()=>{let buffer=this.binary.get(cacheKey);if(!buffer){
+    this.reads++;const release=this.lease(record.signature);const operation=(async()=>{let buffer=this.binary.get(cacheKey);if(!buffer){
       const parent=await lstat(this.child(record.signature));if(!parent.isDirectory()||parent.isSymbolicLink())throw new Error('Unsafe cached frame directory');
       const path=join(this.child(record.signature),'frames.dat'),info=await lstat(path);if(!info.isFile()||info.isSymbolicLink()||info.size!==record.preparedBytes)throw new Error('Cached frame pack changed; refresh the folder');
       const handle=await open(path,constants.O_RDONLY|(constants.O_NOFOLLOW||0));try{const current=await handle.stat();if(current.ino!==info.ino||current.dev!==info.dev)throw new Error('Cached frame changed while opening');buffer=Buffer.alloc(frame.size);let offset=0;while(offset<buffer.length){const result=await handle.read(buffer,offset,buffer.length-offset,frame.offset+offset);if(!result.bytesRead)throw new Error('Truncated cached frame');offset+=result.bytesRead;}}finally{await handle.close();}
       if(digest(buffer)!==frame.hash||buffer.toString('ascii',12,16)!=='IHDR'||buffer.readUInt32BE(16)!==458||buffer.readUInt32BE(20)!==196)throw new Error('Cached frame integrity failed; refresh the folder');this.binary.set(cacheKey,buffer,buffer.length);this.stats.frameReads++;
     }const value=`data:image/png;base64,${buffer.toString('base64')}`;this.uris.set(cacheKey,value,Buffer.byteLength(value));return value;})();this.pending.set(cacheKey,operation);
-    try{return await operation;}finally{this.reads--;this.pending.delete(cacheKey);}
+    try{return await operation;}finally{this.reads--;this.pending.delete(cacheKey);release();}
   }
   clearMemory(){this.binary.clear();this.uris.clear();this.metadata.clear();}
 }
