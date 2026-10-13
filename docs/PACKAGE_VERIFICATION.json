@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-12",
+  "date": "2026-10-13",
   "node": "v20.12.2",
   "platform": "win32",
   "arch": "x64",
   "source": "integrity/architecture-verified release stage",
   "bundledSharpWorkerDecode": "passed",
-  "bundledProtocolNativeOnce": "passed",
+  "bundledProtocolPngOnly": "passed; no native GIF state packets",
   "bundledStaticReplacement": "passed",
   "bundledProfileIsolationAndSDKReadback": "passed with two synthetic profiles sharing one D200 slot, switch/return and fake socket",
   "installedStudio": false,
-  "physicalAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 preferences migrated but playback conflict reported; 0.10.1 physical switching pending"
+  "physicalAnimation": "0.9.0 PNG frames user-confirmed; 0.10.0 preferences migrated but playback conflict reported; 0.10.1 installed; 0.11.0 PNG cache/optimization physical validation pending"
 }

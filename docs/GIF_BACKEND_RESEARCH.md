@@ -1,3 +1,12 @@
+# 0.11.0 decision
+
+The user explicitly removed Native GIF and poster-only playback choices after
+physical D200 native freeze and PNG-frame success. Production GIFs now use direct
+PNG delivery only. Legacy protocol methods and the isolated synthetic probe remain
+research tools; they are not playback options. Internal posters provide loading
+and stop replacement. Current cache/decoder research is in MEDIA_CACHE_RESEARCH.md.
+The earlier native candidate investigation below is retained as evidence/history.
+
 # GIF backend research (before implementation)
 
 ## Verified documentation and source

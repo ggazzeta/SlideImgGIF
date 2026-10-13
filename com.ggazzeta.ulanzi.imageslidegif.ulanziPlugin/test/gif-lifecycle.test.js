@@ -17,13 +17,13 @@ function serviceRuntime(extra={}){
 }
 
 test('GIF survives Inspector absence and unchanged rescan, no stale frames after information/settings/deactivation, reconnect add restarts',async()=>{
-  const r=serviceRuntime();r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});r.service.inspectors.clear();assert.equal(r.packets.at(-1).type,3);
+  const r=serviceRuntime();r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});r.service.inspectors.clear();assert.equal(r.packets.at(-1).type,1);
   r.setTime(1000);await r.service.tick();r.service.renderAll();assert.equal(r.packets.length,1);
   r.service.settings=normalizeSettings({showDateTime:true});r.service.showingDateTime=true;r.service.renderAll();assert.equal(r.packets.at(-1).type,1);
   r.service.showingDateTime=false;r.service.settings.gifBackend='frames';r.service.lastSignature.clear();r.service.renderAll();assert.equal(r.packets.at(-1).data,'one');
   await r.service.applySettings(normalizeSettings({showImages:false,showDateTime:true}),true);const count=r.packets.length;r.service.animation.pump();assert.equal(r.packets.length,count);assert.equal(r.service.animation.timer,null);
   r.service.close();assert.equal(r.timerMap.size,0);assert.equal(r.service.contexts.size,0);assert.equal(r.service.settingsRequested,false);
-  r.service.settings=normalizeSettings({});r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});assert.equal(r.packets.at(-1).type,3);r.service.close();
+  r.service.settings=normalizeSettings({});r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});assert.equal(r.packets.at(-1).type,1);r.service.close();
 });
 
 test('late preparation is rejected after deactivation; rescans and async gallery ticks never overlap',async()=>{
@@ -42,7 +42,7 @@ test('late system probe results are rejected across settings/lifecycle changes',
   release({cpu:50,gpu:20,ram:30,ramUsed:100,ramTotal:300});assert.equal(await probe,false);assert.equal(r.service.systemSlide,null);assert.equal(r.packets.length,count);r.service.close();
 });
 
-test('unchanged global settings response does not stop or replay an activated native GIF',async()=>{
+test('unchanged global settings response does not stop or replay an activated PNG-frame GIF',async()=>{
   const r=serviceRuntime();r.service.settings.folderPath='C:/synthetic';r.service.slides=[media];r.service.add({uuid:ACTION_UUID,context:r.context});
   const count=r.packets.length;await r.service.applySettings(normalizeSettings({...r.service.settings}),true);
   assert.equal(r.packets.length,count);assert.equal(r.service.animation.contexts.get(r.context).media,media);r.service.close();
@@ -63,10 +63,10 @@ test('Inspector save whitelist persists backend alongside existing preferences a
   class Socket {static OPEN=1;readyState=1;handlers={};constructor(){Socket.instance=this;}addEventListener(event,fn){this.handlers[event]=fn;}send(x){sent.push(JSON.parse(x));}}
   vm.runInNewContext(source,{URLSearchParams,location:{search:'?key=3_2&actionid=one'},document:{getElementById:node},WebSocket:Socket});
   Socket.instance.handlers.message({data:JSON.stringify({cmd:'sendToPropertyInspector',uuid:ACTION_UUID,key:'3_2',actionid:'one',payload:{profile:{label:'Test',independent:true},settings:{gifBackend:'frames',sort:'date',showDateTime:true,dateTimeEverySlides:7,showSystemStats:true}}})});
-  assert.equal(node('gif-backend').value,'frames');
+  assert.equal(nodes.has('gif-backend'),false);
   for(const cmd of ['sendToPropertyInspector','didReceiveGlobalSettings','add'])Socket.instance.handlers.message({data:JSON.stringify({cmd,uuid:ACTION_UUID,key:'3_2',actionid:'other-profile',payload:{settings:{folderPath:'C:/foreign',gifBackend:'native'}}})});
-  assert.equal(node('folder').value,'');assert.equal(node('gif-backend').value,'frames');
+  assert.equal(node('folder').value,'');assert.equal(nodes.has('gif-backend'),false);
   node('interval').value='15';node('interval').handlers.change();assert.equal(sent.at(-1).actionid,'one');
   const settings=sent.at(-1).payload.settings;assert.equal(settings.gifBackend,'frames');assert.equal(settings.sort,'date');assert.equal(settings.dateTimeEverySlides,7);assert.equal(settings.showSystemStats,true);assert.equal(settings.intervalSeconds,15);
-  assert.equal(normalizeSettings({dateTimeOnly:true,gifBackend:'poster'}).gifBackend,'poster');assert.throws(()=>normalizeSettings({gifBackend:'automatic'}));
+  assert.equal(normalizeSettings({dateTimeOnly:true,gifBackend:'poster'}).gifBackend,'frames');assert.throws(()=>normalizeSettings({gifBackend:'automatic'}));
 });

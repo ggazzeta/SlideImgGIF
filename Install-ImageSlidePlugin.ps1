@@ -44,7 +44,7 @@ $ExpectedPluginUuid = 'com.ggazzeta.ulanzi.imageslidegif'
 $ExpectedActionUuid = 'com.ggazzeta.ulanzi.imageslidegif.slideshow'
 $ExpectedSetupUuid = 'com.ggazzeta.ulanzi.imageslidegif.setup'
 $ExpectedCodePath = 'plugin/app.js'
-$ExpectedPluginVersion = '0.10.1'
+$ExpectedPluginVersion = '0.11.0'
 
 function Get-NormalizedPath {
     param([Parameter(Mandatory = $true)][string]$Path)

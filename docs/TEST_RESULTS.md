@@ -1,3 +1,26 @@
+# 0.11.0 validation ? 2026-10-13
+
+New tests cover lazy posters/current-next preparation, binary packs, process
+ownership, disk leases/eviction, bounded shared LRUs, corruption/readback/rebuild,
+large detailed posters, exact partial/transparency/disposal pixels, high-rate
+sampling with duration/finite-loop terminal behavior, shared duplicate pixels,
+late async frame reads/backpressure, source replacement, temporary cleanup,
+shutdown during atomic commit, reconnect and pending-profile cancellation.
+All previous static/information, profile/Inspector and exact Setup checks remain.
+106/106 Node tests pass on 20.12.2 and 24.21.0, with no skips. The staged Windows x64 smoke passes real bundled Sharp preparation, PNG-only packets (zero native GIF packets), static replacement and two synthetic profiles sharing one D200 slot through fake SDK settings readback. Universal native integrity/architecture checks pass. Final Python release-inventory results follow artifact construction.
+
+One synthetic 640?360, 80-frame, 30 ms clip measured about 177 MiB peak process RSS
+on the old pipeline and 72 MiB on the new pipeline; process CPU was 2.37 versus
+0.75 seconds. A 1024?768/80-frame clip (62,914,560 decoded pixels) was actually
+rejected by the old policy and accepted by the new pipeline at about 76 MiB
+sampled peak RSS. Hot prepared lookup caused no additional decode or frame read.
+These are isolated Node 20 Windows results, not Studio/device measurements, and
+sampled RSS is not a universal/hard memory ceiling. TIFF preparation trades
+bounded local disk I/O for lower raw-buffer retention. See the two CACHE_*.json
+measurement reports and MEDIA_CACHE_RESEARCH.md. npm audit: zero vulnerabilities.
+
+## Historical validation
+
 # Validation results — 2026-10-12
 
 ## 0.10.1 display ownership correction

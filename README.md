@@ -1,6 +1,6 @@
 # ImageSlide GIF — independent ggazzeta fork
 
-GIF preparation and three playback choices for the D200 458×196 large display,
+PNG-frame GIF playback with bounded on-demand preparation for the D200 458×196 large display,
 preserving the static slideshow, clock, WeatherAPI and CPU/GPU/RAM panels.
 **The user confirms PNG-frame animation works on the tested D200; Native GIF
 animates in Studio but freezes on that device.** See [hardware observations](docs/HARDWARE_OBSERVATIONS.md)
@@ -10,7 +10,7 @@ official Ulanzi plugin.
 Fork: https://github.com/ggazzeta/SlideImgGIF. Based on
 [SlideImgPlugin](https://github.com/arkamax404-max/SlideImgPlugin) revision
 `cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8` (0.8.1), MIT copyright Santiago Pérez.
-Fork version: 0.10.1. The private profile technique attribution remains with
+Fork version: 0.11.0. The private profile technique attribution remains with
 https://github.com/chilleno/claude-deck as acknowledged by upstream.
 
 ## Playback
@@ -22,20 +22,30 @@ GIF frames are composited, independently centre-cropped and bounded by the
 Inspector feedback while valid images continue. Use Refresh beside folder
 selection for same-size/same-mtime replacements.
 
-* **Native GIF**: explicit documented candidate; sends once on activation/media
-  change. Physical support is unverified. No invented speed/pause/completion API.
-* **PNG frames**: explicit experimental fallback, one shared monotonic scheduler,
-  up to 10 FPS, backpressure and outdated-frame skipping via direct image delivery.
-* **Static poster**: safe GIF first-frame fallback.
+GIFs use **PNG-frame playback only**, through the same direct image method that
+worked on the tested D200. Native GIF and poster-only Inspector choices have been
+removed; known old choices normalize to PNG frames. A poster remains internal
+while preparation is pending and when local animation stops.
 
-For the tested D200, select **GIF playback → PNG frames**. Version 0.10.0 uses
-PNG frames for fresh settings and preserves an existing explicit backend during
-migration. Sustained timing/lifecycle validation and macOS animation remain pending.
+GIFs are decoded/composited once into a private temporary multi-page TIFF. Only
+selected pages are individually resized and losslessly PNG-encoded. High-rate
+sources are sampled to the existing 10 FPS cadence, retaining total cycle duration,
+finite loops and terminal pixels; short transients may be skipped. Identical
+normalized frames share bytes. Current/next clips prepare on demand; a versioned
+SHA-256 disk cache avoids decoding/PNG encoding again until source content changes
+or the cache evicts a clip. Binary frames and send strings use small shared LRUs.
+See [cache research](docs/MEDIA_CACHE_RESEARCH.md) and
+[measured performance](docs/CACHE_PERFORMANCE_MEASUREMENTS.json).
+
+One synthetic Node 20 benchmark reduced sampled peak process RSS from about 177
+MiB to 72 MiB; this is not a hard RSS bound or a Studio/D200 measurement. The price
+is bounded temporary disk I/O. Sustained device timing and macOS animation remain
+unverified for 0.11.0; the installed 0.10.1 has not been replaced.
 
 Media dwell time remains the slideshow interval (minimum five seconds). Changing
 items may end a GIF mid-cycle. Gallery wrap-around and embedded GIF loops are
 separate; finite GIFs hold the final frame until dwell expires. **Settings are now
-independent per profile**, including folders, timings, backend and information
+independent per profile**, including folders, timings and information
 preferences. Pages within one profile share that profile's settings. Each profile
 starts with a copy of the last 0.9.0 shared preferences, then changes independently.
 The original shared snapshot and private backups are retained for rollback. See

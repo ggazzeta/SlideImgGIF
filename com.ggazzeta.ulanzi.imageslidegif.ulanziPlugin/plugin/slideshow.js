@@ -16,7 +16,7 @@ export const MAX_DATE_TIME_FREQUENCY = 10000;
 export const MAX_DATE_TIME_DURATION_SECONDS = 3600;
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".svg", ".gif"]);
 const TEMP_SUFFIXES = [".tmp", ".temp", ".part", ".crdownload", ".download"];
-const DEFAULT_SETTINGS = { gifBackend:'native', folderPath: "", intervalSeconds: 10, loop: true, sort: "name", showImages: true, showDateTime: false, dateTimeEverySlides: 5, dateTimeDurationSeconds: 5, dateFormat: "system", showWeather: false, weatherApiKey: "", weatherLocation: "", weatherUnits: "c", weatherEverySlides: 5, weatherDurationSeconds: 8, showSystemStats: false, systemEverySlides: 5, systemDurationSeconds: 5 };
+const DEFAULT_SETTINGS = { gifBackend:'frames', folderPath: "", intervalSeconds: 10, loop: true, sort: "name", showImages: true, showDateTime: false, dateTimeEverySlides: 5, dateTimeDurationSeconds: 5, dateFormat: "system", showWeather: false, weatherApiKey: "", weatherLocation: "", weatherUnits: "c", weatherEverySlides: 5, weatherDurationSeconds: 8, showSystemStats: false, systemEverySlides: 5, systemDurationSeconds: 5 };
 
 export async function loadConfiguration(root) {
   const slides = await Promise.all(["sample-blue.svg", "sample-sunset.svg"].map((name) => loadSlide(join(root, "slides", name))));
@@ -25,8 +25,9 @@ export async function loadConfiguration(root) {
 
 export function normalizeSettings(value, defaults = DEFAULT_SETTINGS) {
   const raw = value && typeof value === "object" ? value : {};
-  const gifBackend=raw.gifBackend??defaults.gifBackend??'native';
-  if(!['native','frames','poster'].includes(gifBackend))throw new Error('GIF playback must be native, frames, or poster');
+  const previousBackend=raw.gifBackend??defaults.gifBackend??'frames';
+  if(!['native','frames','poster'].includes(previousBackend))throw new Error('Unsupported saved GIF playback setting');
+  const gifBackend='frames'; // Known legacy choices migrate to the only supported production backend.
   const intervalSeconds = Number(raw.intervalSeconds ?? defaults.intervalSeconds);
   if (!Number.isFinite(intervalSeconds) || intervalSeconds < MIN_INTERVAL_SECONDS || intervalSeconds > 86400) throw new Error(`Interval must be between ${MIN_INTERVAL_SECONDS} and 86400 seconds.`);
   if (raw.loop !== undefined && typeof raw.loop !== "boolean") throw new Error("Loop must be true or false.");
@@ -114,7 +115,7 @@ export async function enumerateFolder(folderPath, sort = "name", fsApi = { lstat
       if(slide?.rejection)throw new Error(slide.rejection);
       if(!slide)throw new Error('Previously rejected media; use Refresh folder to retry');
       if (signatures.has(slide.signature)) continue;
-      const bytes=slide.preparedBytes??Buffer.byteLength(slide.dataUri);
+      const bytes=slide.retainedBytes??slide.preparedBytes??Buffer.byteLength(slide.dataUri);
       if(retainedBytes+bytes>32*1024*1024){cache.delete(cacheKey);throw new Error('Gallery memory budget reached; use a smaller folder');}
       retainedBytes+=bytes;
       signatures.add(slide.signature); slides.push(slide);
@@ -277,11 +278,11 @@ export class SlideshowService {
   informationSlide(view) { if(view==="dateTime")return createDateTimeSlide(this.now(),this.settings.dateFormat);if(view==="weather")return this.weatherSlide||createWeatherSlide(null,this.settings.weatherUnits,undefined,this.weatherStatus.message);return this.systemSlide; }
   render(context,force=false) {
     const slide=this.currentSlide(); if(!slide)return;
-    if(!force && this.lastSignature.get(context)===slide.signature)return;
-    try { this.animation.display(context,slide,this.settings.gifBackend||'native',force); this.lastSignature.set(context,slide.signature); this.log("render"); }
+    if(!force && this.lastSignature.get(context)===slide.signature&&!this.animation.contexts.get(context)?.failed)return;
+    try { this.animation.display(context,slide,'frames',force,message=>{slide.rejection=message;if(this.activeContexts.has(context)&&this.currentSlide()?.signature===slide.signature)this.setStatus('warning',`${slide.name}: ${message}`,this.slides.length);}); this.lastSignature.set(context,slide.signature); this.log("render"); }
     catch { this.log("render-error"); }
   }
-  renderAll(force=false) { for(const context of this.activeContexts)this.render(context,force); }
+  renderAll(force=false) { for(const context of this.activeContexts)this.render(context,force);if(this.activeContexts.size&&this.settings.showImages){const next=this.slides[this.index+1]||(this.settings.loop?this.slides[0]:null);if(next&&next.signature!==this.currentSlide()?.signature)void this.animation.preload?.(next).catch(()=>{});} }
   async tick() {
     if(this.tickRunning||!this.activeContexts.size)return;
     this.tickRunning=true;const generation=this.lifecycleGeneration;

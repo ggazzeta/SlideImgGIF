@@ -49,7 +49,7 @@ export function svgDimensions(buffer) {
 
 export async function readMedia(file) {
     const before=await lstat(file);
-    if(!before.isFile()||before.isSymbolicLink()||!before.size||before.size>8*1024*1024)throw new Error('Media must be a real file no larger than 8 MiB');
+    if(!before.isFile()||before.isSymbolicLink()||!before.size||before.size>(extname(file).toLowerCase()==='.gif'?16:8)*1024*1024)throw new Error('Media must be a real file within the 8 MiB static / 16 MiB GIF limit');
     const handle=await open(file,constants.O_RDONLY|(constants.O_NOFOLLOW||0));
     let buffer;
     try{
@@ -63,12 +63,17 @@ export async function readMedia(file) {
     return {buffer,info:before};
 }
 
-export async function loadSlide(file) {
+export async function loadSlide(file,{preparer=mediaPreparer}={}) {
   const extension = extname(file).toLowerCase();
   const {buffer,info}=await readMedia(file);
   const signature=createHash('sha256').update(buffer).digest('hex');
   if(extension === '.gif') {
-    return {...await mediaPreparer.prepare(buffer,signature),signature,name:file.split(/[\\/]/).pop(),modifiedMs:info.mtimeMs};
+    const described=await preparer.describe(buffer,signature,{transfer:true});
+    return {...described,signature,name:file.split(/[\\/]/).pop(),modifiedMs:info.mtimeMs,prepare:async()=>{
+      const cached=await preparer.store.lookup(signature);if(cached)return cached;
+      const fresh=await readMedia(file);if(createHash('sha256').update(fresh.buffer).digest('hex')!==signature)throw new Error('GIF changed during preparation; refresh the folder');
+      return preparer.prepare(fresh.buffer,signature,{transfer:true});
+    }};
   }
   const mime = MIME.get(extension);
   if (!mime) throw new Error("Unsupported image type");

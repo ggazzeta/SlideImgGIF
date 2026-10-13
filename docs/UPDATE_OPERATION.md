@@ -1,43 +1,39 @@
-# Prepared 0.10.1 correction ? not installed
+# Prepared 0.11.0 ? not installed
 
-Package: `com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin.zip`, version 0.10.1,
-27,683,473 bytes, SHA-256 `f5f1be835263ce91dbdae30bcda010b962532a7a0ca8095aa915a44f4b3b0c1f`.
-Runtime source: `8b5b399f7eb52422a99b1c1e41b32afe7a01d0ef`, branch `fix/profile-display-ownership`.
+The user requested PNG-frame playback only, more leeway for short GIFs, and lower
+preparation/playback memory and CPU usage. This update removes native/poster
+Inspector choices, normalizes known old backend values to PNG frames, and preserves
+all profile folders, dwell and information preferences in the existing schema.
 
-The user reported that 0.10.0 played folders from multiple profiles on the same
-physical D200. A read-only inspection confirmed two distinct folders remain saved
-in two profile leaves. This correction gives the physical large-display slot one
-owner per D200 device, stops old profile/page frame work before replacement,
-rejects late activations, parses false active strings correctly, and prevents
-foreign Inspector packets from retargeting settings. It preserves the current
-profile preferences and their private backups. See TEST_RESULTS.md and
-PROFILE_SETTINGS_MIGRATION.md for evidence and the private metadata boundary.
+It adds lazy current/next preparation, per-page compositing/resizing, high-rate
+sampling with preserved cycle duration/finite final pixels, lossless PNG frame
+reuse, a reusable idle worker, and bounded private binary/send/disk caches. Defaults
+are 16 MiB GIF input, 600 source frames, 64 million source pixels and a 20-second
+cycle. Sampling can skip brief frames. Sources remain unchanged.
 
-After explicit approval and manual Studio closure, replace **only** the installed
-0.10.0 fork folder under
-`%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ggazzeta.ulanzi.imageslidegif.ulanziPlugin`.
-Verify the installed 0.10.0 inventory against its approved ZIP first; preserve
-unexpected changes rather than overwriting them. The installer stages, validates
-and reads back the new files, preserves a timestamped fork-folder backup, rolls
-back deployment failure, and starts Studio normally. It never terminates Studio.
+The installed 0.10.1 remains untouched. A future concrete replacement will require
+explicit approval and manual Studio closure. The installer replaces only this
+fork's folder under %APPDATA%\Ulanzi\UlanziDeck\Plugins, preserves a rollback
+backup, validates/readbacks staged files and starts Studio normally. It never
+terminates Studio, imports profiles, invokes Setup, changes saved layout/action
+parameters, alters Studio binaries or touches other plugins/audio/Kenku settings.
 
-No profile import, saved layout/action parameter write, Setup invocation, GIF probe,
-Studio binary change, other plugin replacement or audio adjustment is included.
-Kenku, Voicemeeter, Focusrite and Windows audio routing remain outside this operation.
-Existing SmallViewMode:2 assignments and exact Setup executable pins remain intact.
-The only helper lineage change explicitly accepts known prior fork 0.10.0 metadata
-alongside 0.9.0, with the same exact identity/parameter/integrity checks.
+On first use the new runtime creates this fork's private derived cache under
+%LOCALAPPDATA%\ggazzeta\ImageSlideGIF\png-v2 (macOS ~/Library/Caches/ggazzeta/ImageSlideGIF/png-v2).
+The 256 MiB disk cache and temporary TIFF/PNG packs are bounded, source-content
+keyed, atomic and private. Peak temporary disk use can reach about 592 MiB; this
+is the tradeoff for lower raw-buffer retention. See PERFORMANCE_LIMITS.md.
+The source checker uses a separate cache. No media is uploaded.
 
-Rollback: close Studio manually and restore the new timestamped **fork** folder
-backup. The preference registry uses the same schema and is readable by 0.10.0;
-that build retains the reported playback defect. Preserve the separate original
-0.9.0 backup and private preference snapshots. A 0.9.0 rollback reads the original
-shared configuration. Do not overwrite the whole Studio global settings file.
+Rollback: close Studio manually and restore the preserved 0.10.1 fork folder.
+Preferences use the same schema; no whole-Studio settings file is restored.
+The derived cache is ignored by old versions. Known prior fork metadata gains
+only explicit version acceptance for restore; exact build pins, identities,
+parameters, hashes, receipts and backup requirements remain unchanged.
 
-Physical switching on 0.10.1 remains a manual validation step. Check distinct
-folders in A/B, stay on each for several dwell intervals, return to A, close the
-Inspector, change pages, restart Studio and reconnect the D200.
+Automated and synthetic performance evidence is in TEST_RESULTS.md and the
+CACHE_*.json reports. Physical 0.11.0 playback/profile switching, sustained CPU,
+memory, frame cadence and Studio responsiveness remain manual validation steps.
+No store submission or hardware-verified release claim is included.
 
-Approval is required by the user's section 3: ?Installing/replacing plugins ?
-requires my explicit approval of the concrete prepared operation.? The prior
-approval covered the specific 0.10.0 artifact; this new ZIP needs approval.
+Final reviewed ZIP hash/size and source revision will be recorded after packaging.

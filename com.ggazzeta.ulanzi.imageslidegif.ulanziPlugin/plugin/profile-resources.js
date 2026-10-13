@@ -15,8 +15,8 @@ export class SharedGalleryBudget {
   constructor(limit=32*1024*1024){this.limit=limit;this.leases=new Map();}
   select(key,slides){
     const used=new Map();for(const [owner,media] of this.leases)if(owner!==key)for(const slide of media)used.set(slide.signature,slide);
-    let bytes=[...used.values()].reduce((sum,slide)=>sum+(slide.preparedBytes??Buffer.byteLength(slide.dataUri)),0);const accepted=[],rejected=[];
-    for(const slide of slides){const size=slide.preparedBytes??Buffer.byteLength(slide.dataUri);if(!used.has(slide.signature)&&bytes+size>this.limit){rejected.push(slide);continue;}const shared=used.get(slide.signature);const value=shared?{...slide,frames:shared.frames,dataUri:shared.dataUri,gifdata:shared.gifdata}:slide;if(!shared){used.set(slide.signature,value);bytes+=size;}accepted.push(value);}
+    let bytes=[...used.values()].reduce((sum,slide)=>sum+(slide.retainedBytes??slide.preparedBytes??Buffer.byteLength(slide.dataUri)),0);const accepted=[],rejected=[];
+    for(const slide of slides){const size=slide.retainedBytes??slide.preparedBytes??Buffer.byteLength(slide.dataUri);if(!used.has(slide.signature)&&bytes+size>this.limit){rejected.push(slide);continue;}const shared=used.get(slide.signature);const value=shared?{...slide,frames:shared.frames,dataUri:shared.dataUri,gifdata:shared.gifdata}:slide;if(!shared){used.set(slide.signature,value);bytes+=size;}accepted.push(value);}
     this.leases.set(key,accepted);return {accepted,rejected};
   }
   release(key){this.leases.delete(key);}

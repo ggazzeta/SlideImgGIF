@@ -19,15 +19,13 @@ test('GIF validation rejects extension-content mismatch, truncation, excess dime
   for(const limits of [{frames:1},{decodedPixels:5},{outputPixels:1},{inputBytes:1}])assert.throws(()=>inspectGif(gif,{...GIF_LIMITS,...limits}));
 });
 
-test('single-frame and animated GIF preserve delays, explicit loops, absent-loop one play, nonsquare frame sizing',async()=>{
+test('binary PNG frames preserve effective timing and loop counts, merge duplicate frames and keep per-page sizing',async()=>{
   for(const loop of [null,0,2]){
-    const input=fixtureGif({loop,frames:[{pixels:[1,1,1],delay:0},{pixels:[2,2,2],delay:7},{pixels:[2,2,2],delay:17}]});
-    const result=await prepareGif(input),encoded=Buffer.from(result.gifdata.split(',')[1],'base64'),meta=await sharp(encoded,{animated:true}).metadata();
-    assert.equal(meta.width,458);assert.equal(meta.pageHeight,196);assert.equal(meta.pages,3);
-    assert.deepEqual(result.delays,[0,70,170]);assert.deepEqual(meta.delay,[0,70,170]);assert.equal(meta.loop,result.loop);assert.equal(result.loop,loop===null?1:loop===0?0:3);
-    const {data,info}=await sharp(encoded,{animated:true}).ensureAlpha().raw().toBuffer({resolveWithObject:true});
-    assert.deepEqual([...data.subarray(0,4)],[255,0,0,255]);
-    assert.deepEqual([...data.subarray(458*196*4,458*196*4+4)],[0,255,0,255]);assert.equal(info.height,196*3);
+    const result=await prepareGif(fixtureGif({loop,frames:[{pixels:[1,1,1],delay:0},{pixels:[2,2,2],delay:7},{pixels:[2,2,2],delay:17}]}));
+    assert.equal(result.gifdata,undefined);assert.equal(result.frames.length,2);assert.deepEqual(result.delays,[100,240]);assert.equal(result.durationMs,340);assert.equal(result.loop,loop===null?1:loop===0?0:3);
+    for(const frame of result.frames){assert.ok(Buffer.isBuffer(frame));const metadata=await sharp(frame).metadata();assert.equal(metadata.width,458);assert.equal(metadata.height,196);}
+    assert.deepEqual([...(await sharp(result.frames[0]).ensureAlpha().raw().toBuffer()).subarray(0,4)],[255,0,0,255]);
+    assert.deepEqual([...(await sharp(result.frames[1]).ensureAlpha().raw().toBuffer()).subarray(0,4)],[0,255,0,255]);
   }
   const single=await prepareGif(fixtureGif({loop:null,frames:[{pixels:[3,3,3],delay:10}]}));assert.equal(single.frames.length,1);assert.equal(single.loop,1);
 });
@@ -42,18 +40,17 @@ test('partial-frame transparency and disposal 2/3 compose to known expected RGBA
     const prepared=await prepareGif(gif);
     for(let i=0;i<3;i++){
       const expectedFrame=await sharp(Buffer.from(expected.slice(i*12,(i+1)*12)),{raw:{width:3,height:1,channels:4}}).resize(458,196,{fit:'cover',position:'centre'}).png().toBuffer();
-      const actual=await sharp(Buffer.from(prepared.frames[i].split(',')[1],'base64')).raw().toBuffer();
+      const actual=await sharp(prepared.frames[i]).raw().toBuffer();
       assert.deepEqual(actual,await sharp(expectedFrame).raw().toBuffer());
     }
-    const original=await sharp(Buffer.from(prepared.gifdata.split(',')[1],'base64'),{animated:true}).metadata();assert.deepEqual(original.delay,[200,300,400]);
+    assert.deepEqual(prepared.delays,[200,300,400]);
   }
 });
 
-test('native re-encoded animation matches known composited pixels over its exact temporal sequence',async()=>{
+test('PNG playback matches known composited pixels over an exact low-rate temporal sequence',async()=>{
   const input=fixtureGif({width:458,height:196,loop:1,frames:[{pixels:Array(458*196).fill(1),delay:20},{x:219,y:88,width:20,height:20,pixels:Array(400).fill(2),delay:30,disposal:3},{x:400,y:88,width:20,height:20,pixels:Array(400).fill(3),delay:40}]});
-  const media=await prepareGif(input),encoded=Buffer.from(media.gifdata.split(',')[1],'base64');
-  const meta=await sharp(encoded,{animated:true}).metadata();assert.equal(meta.loop,2);assert.deepEqual(meta.delay,[200,300,400]);
-  const decoded=await sharp(encoded,{animated:true}).ensureAlpha().raw().toBuffer();
+  const media=await prepareGif(input);assert.equal(media.loop,2);assert.deepEqual(media.delays,[200,300,400]);
+  const decoded=Buffer.concat(await Promise.all(media.frames.map(frame=>sharp(frame).ensureAlpha().raw().toBuffer())));
   const pixel=(frame,x,y)=>[...decoded.subarray(((frame*196+y)*458+x)*4,((frame*196+y)*458+x)*4+4)];
   assert.deepEqual(pixel(0,228,98),[255,0,0,255]);assert.deepEqual(pixel(1,228,98),[0,255,0,255]);assert.deepEqual(pixel(2,228,98),[255,0,0,255]);assert.deepEqual(pixel(2,409,98),[0,0,255,255]);
   await assert.rejects(prepareGif(input,{...GIF_LIMITS,outputBytes:1}),/Prepared GIF/);
@@ -75,9 +72,21 @@ test('uppercase GIF participates in deterministic mixed discovery, full-content 
 
 test('worker queue shares jobs, enforces timeout and concurrency, cancellation rejects late completion',async()=>{
   const workers=[];class FakeWorker extends EventEmitter{constructor(){super();workers.push(this);}postMessage(){}terminate(){this.terminated=true;return Promise.resolve();}}
-  const preparer=new MediaPreparer({WorkerImpl:FakeWorker,limits:{...GIF_LIMITS,timeoutMs:20,queuedJobs:1}});
-  const first=preparer.prepare(Buffer.from('a'),'a');assert.equal(first,preparer.prepare(Buffer.from('a'),'a'));
-  const second=preparer.prepare(Buffer.from('b'),'b');await assert.rejects(preparer.prepare(Buffer.from('c'),'c'),/queue full/);assert.equal(workers.length,1);
-  const firstCheck=assert.rejects(first,/15 seconds/),secondCheck=assert.rejects(second,/cancelled/);await firstCheck;assert.equal(workers.length,2);preparer.cancel();await secondCheck;
-  workers[0].emit('message',{media:{preparedBytes:1}});assert.equal(preparer.cache.size,0);assert.ok(workers.every(w=>w.terminated));
+  const store={lookup:async()=>null,begin:async()=>({path:'synthetic',name:'synthetic'}),abort:async()=>{},clearMemory(){}};
+  const preparer=new MediaPreparer({WorkerImpl:FakeWorker,store,limits:{...GIF_LIMITS,timeoutMs:40,queuedJobs:1}});
+  const first=preparer.prepare(Buffer.from('a'),'a');assert.equal(first,preparer.prepare(Buffer.from('a'),'a'));const firstCheck=assert.rejects(first,/30 seconds/);
+  await new Promise(resolve=>setImmediate(resolve));const second=preparer.prepare(Buffer.from('b'),'b'),secondCheck=assert.rejects(second,/cancelled/);await new Promise(resolve=>setImmediate(resolve));
+  await assert.rejects(preparer.prepare(Buffer.from('c'),'c'),/queue full/);assert.equal(workers.length,1);
+  await firstCheck;await new Promise(resolve=>setImmediate(resolve));assert.equal(workers.length,2);preparer.cancel();await secondCheck;
+  workers[0].emit('message',{media:{preparedBytes:1}});assert.ok(workers.every(worker=>worker.terminated));
+});
+
+test('shutdown waits for an in-flight atomic commit, rejects its stale result and terminates the reusable worker before cache release',async()=>{
+  let release,closed=false;const committing=new Promise(done=>release=done),workers=[];
+  class FakeWorker extends EventEmitter{constructor(){super();workers.push(this);}postMessage(){}terminate(){this.terminated=true;return Promise.resolve();}}
+  const store={lookup:async()=>null,begin:async()=>({path:'synthetic',name:'synthetic'}),commit:async()=>committing,abort:async()=>{},clearMemory(){},close:async()=>{closed=true;}};
+  const preparer=new MediaPreparer({WorkerImpl:FakeWorker,store}),preparing=preparer.prepare(Buffer.from('synthetic'),'synthetic');const rejected=assert.rejects(preparing,/cancelled/);
+  await new Promise(done=>setImmediate(done));workers[0].emit('message',{media:{preparedBytes:1}});await new Promise(done=>setImmediate(done));
+  const shutdown=preparer.shutdown();await new Promise(done=>setImmediate(done));assert.equal(closed,false);
+  release({kind:'gif',frames:['one'],preparedBytes:1});await shutdown;await rejected;assert.equal(closed,true);assert.equal(workers[0].terminated,true);assert.equal(preparer.active,null);
 });

@@ -28,11 +28,11 @@ async function writePage(f,page,compact=false){await writeFile(f.manifest,JSON.s
 async function install(f){await prepare({dataRoot:f.data,stateRoot:f.state,key:"0_0",setupActionId:actionId});return apply({dataRoot:f.data,stateRoot:f.state,isStudioClosed:async()=>true})}
 
 test('0.9.0 and 0.10.0 fork center metadata remains restorable after the profile update while unknown versions and parameter changes refuse',async()=>{
-  for(const variant of ['known','known010','unknown','params','upstream']){
+  for(const variant of ['known','known010','known0101','unknown','params','upstream']){
     const f=await fixture();
     try{
-      await install(f);const page=await readPage(f),center=page.Controllers[0].Actions['3_2'];center.Plugin.Version=variant==='unknown'?'0.8.9':variant==='known010'?'0.10.0':'0.9.0';if(variant==='params')center.ActionParam.folderPath='forbidden';if(variant==='upstream')center.Plugin.UUID='com.arkamax.ulanzi.imageslide';await writePage(f,page);
-      if(variant==='known'||variant==='known010'){await prepare({dataRoot:f.data,stateRoot:f.state,key:'0_0',setupActionId:actionId,operation:'restore'});const receipt=await apply({dataRoot:f.data,stateRoot:f.state,isStudioClosed:async()=>true});assert.equal(receipt.result,'restored');assert.equal((await readPage(f)).Controllers[0].Actions['3_2'].Action,builtIn);}
+      await install(f);const page=await readPage(f),center=page.Controllers[0].Actions['3_2'];center.Plugin.Version=variant==='unknown'?'0.8.9':variant==='known010'?'0.10.0':variant==='known0101'?'0.10.1':'0.9.0';if(variant==='params')center.ActionParam.folderPath='forbidden';if(variant==='upstream')center.Plugin.UUID='com.arkamax.ulanzi.imageslide';await writePage(f,page);
+      if(variant==='known'||variant==='known010'||variant==='known0101'){await prepare({dataRoot:f.data,stateRoot:f.state,key:'0_0',setupActionId:actionId,operation:'restore'});const receipt=await apply({dataRoot:f.data,stateRoot:f.state,isStudioClosed:async()=>true});assert.equal(receipt.result,'restored');assert.equal((await readPage(f)).Controllers[0].Actions['3_2'].Action,builtIn);}
       else await assert.rejects(prepare({dataRoot:f.data,stateRoot:f.state,key:'0_0',setupActionId:actionId,operation:'restore'}));
     }finally{await rm(f.root,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
   }

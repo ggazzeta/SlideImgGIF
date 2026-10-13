@@ -4,7 +4,7 @@
   "Description": "Independent D200 slideshow with per-profile preferences and bounded GIF playback.",
   "Overview": "458×196 gallery with clock, weather, system panels and bounded GIF preparation. Physical GIF support unverified.",
   "Author": "ggazzeta; based on Santiago Pérez (MIT)",
-  "Version": "0.10.1",
+  "Version": "0.11.0",
   "Icon": "resources/icon.png",
   "Category": "ggazzeta",
   "CategoryIcon": "resources/category.png",
@@ -69,7 +69,7 @@
   "Software": {
     "MinVersion": "3.0.11"
   },
-  "Detail": "Independent community fork, not an official Ulanzi plugin. Native GIF and PNG-frame playback require physical validation. Setup uses private profile storage and only exact pinned Studio builds. Prefer a cloned exported profile.",
+  "Detail": "Independent community fork, not an official Ulanzi plugin. PNG-frame GIF playback with bounded preparation and private caching; new pipeline awaits physical validation. Setup uses private profile storage and exact pinned Studio builds. Prefer a cloned exported profile.",
   "Banner": [
     "assets/banners/banner-1.png"
   ]

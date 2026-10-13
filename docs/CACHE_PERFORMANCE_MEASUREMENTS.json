@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-13",
+  "fixture": "original synthetic solid-color 640x360 GIF, 80 frames, 30 ms source delays",
+  "sourceDecodedPixels": 18432000,
+  "method": "separate Node processes; process RSS sampled every 5 ms; CPU is process CPU; measurements include cache frame reads for new path",
+  "studioConnected": false,
+  "physicalDeviceMeasured": false,
+  "results": [
+    {
+      "mode": "baseline",
+      "node": "v20.12.2",
+      "elapsedMs": 1189.1143,
+      "cpuMs": 2374,
+      "peakRSSBytes": 185372672,
+      "compressedInputBytes": 60593,
+      "accepted": true,
+      "preparedBytes": 312566,
+      "playbackFrames": 80,
+      "nativeGifEncoded": true
+    },
+    {
+      "mode": "new",
+      "node": "v20.12.2",
+      "elapsedMs": 823.9925000000001,
+      "cpuMs": 750,
+      "peakRSSBytes": 75337728,
+      "compressedInputBytes": 60593,
+      "accepted": true,
+      "preparedBytes": 20669,
+      "sourceFrames": 80,
+      "playbackFrames": 25,
+      "nativeGifEncoded": false,
+      "coldPreparationMs": 795.3236,
+      "hotPreparationMs": 0.03570000000001983,
+      "decodeJobs": 1,
+      "diskFrameReads": 25,
+      "additionalHotFrameReads": 0,
+      "binaryCacheBytes": 20669,
+      "uriCacheBytes": 28146
+    }
+  ]
+}

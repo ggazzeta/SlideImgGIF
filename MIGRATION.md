@@ -11,7 +11,7 @@ Exact Windows executable pins are unchanged.
 This is a new independent plugin, not an in-place upstream upgrade.
 
 * Main UUID: `com.ggazzeta.ulanzi.imageslidegif` (four segments).
-* Actions: `.slideshow`, `.setup`; matching `.ulanziPlugin` folder; version 0.10.1.
+* Actions: `.slideshow`, `.setup`; matching `.ulanziPlugin` folder; version 0.11.0.
 * Setup state: `%LOCALAPPDATA%\ggazzeta\ImageSlideGIF` on Windows;
   `~/Library/Application Support/ggazzeta/ImageSlideGIF` on macOS.
 * Installer backups: `_ggazzeta_imageslidegif_backups`; new checksums only.

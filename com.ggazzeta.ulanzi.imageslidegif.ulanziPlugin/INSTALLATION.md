@@ -1,4 +1,4 @@
-# ImageSlide GIF 0.10.1 — independent ggazzeta fork
+# ImageSlide GIF 0.11.0 — independent ggazzeta fork
 
 MIT copyright Santiago Pérez retained. Not an official Ulanzi plugin.
 Source/instructions: https://github.com/ggazzeta/SlideImgGIF.
@@ -7,14 +7,14 @@ Source/instructions: https://github.com/ggazzeta/SlideImgGIF.
 
 All preferences are now independent per profile. Pages in one profile share its
 settings. Each profile starts with a copy of the last 0.9.0 shared configuration;
-then folders, dwell, backend, clock, weather and system preferences can differ.
-Fresh settings prefer PNG frames; explicit legacy choices are preserved.
+then folders, dwell, clock, weather and system preferences can differ.
+0.11.0 uses PNG frames only; known legacy native/poster choices normalize to frames.
 
 The runtime keeps the original flat preferences for rollback, stores independent
 leaves through the SDK global-settings contract, and verifies private before/latest
 backups under the fork's application-data preferences directory. It confirms SDK
 readback before applying saves. It never puts preferences into saved action
-parameters or changes SmallViewMode:2. Old 0.9.0 fork Setup lineage is retained;
+parameters or changes SmallViewMode:2. Known prior fork 0.9.0/0.10.0/0.10.1 Setup lineage is retained;
 unknown versions, foreign UUIDs and extra action parameters still refuse.
 
 Windows x64 is the first target. macOS x64/arm64 native dependencies are bundled
@@ -65,3 +65,12 @@ rendering or code-0 replies do not prove device animation. Follow the repository
 manual checklist for timing/loops, direct PNG replacement, page changes/reconnect,
 Inspector closure, sustained playback and resource measurements before making
 any verified animation claim. No store submission is part of this package.
+
+The 0.11.0 cache pipeline is not installed yet. On approval it creates only this
+fork's private derived cache under %LOCALAPPDATA%\ggazzeta\ImageSlideGIF\png-v2
+(macOS ~/Library/Caches/ggazzeta/ImageSlideGIF/png-v2). Cache source hashes, generated
+PNG packs, temporary TIFFs and ownership files are local/private and excluded from
+packages. Sources are unchanged. Roll back by manually closing Studio and restoring
+the preserved 0.10.1 fork folder; preferences use the same schema. Derived cache
+files need not be restored and are ignored by old versions. No installed profile,
+audio setting or Studio executable is modified by the cache feature.

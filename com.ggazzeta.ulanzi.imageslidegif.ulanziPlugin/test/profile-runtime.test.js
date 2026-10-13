@@ -5,6 +5,7 @@ import {profileKey} from '../plugin/profile-scope.js';
 import {ACTION_UUID,normalizeSettings} from '../plugin/slideshow.js';
 import {AnimationPlayer} from '../plugin/animation-player.js';
 import {SharedWeatherRequests,SharedSystemSamples,SharedGalleryBudget,SharedFolderWatchers} from '../plugin/profile-resources.js';
+import {mediaPreparer} from '../plugin/media-preparer.js';
 
 function fixture({resolver,backups,confirm=true}={}){
   const handlers={},packets=[],writes=[],timers=new Map();let now=0,id=0,intervals=0,watchCount=0;
@@ -25,7 +26,7 @@ test('all preferences and folders save independently across profiles while pages
   const settingsA={...f.scope('a').settings,folderPath:'C:/A',intervalSeconds:25,loop:false,sort:'date',dateFormat:'dmy',showDateTime:true,dateTimeEverySlides:3,dateTimeDurationSeconds:7,weatherApiKey:'A-secret',weatherLocation:'A-town',weatherUnits:'f',systemEverySlides:8,systemDurationSeconds:11};
   await f.runtime.fromInspector({uuid:ACTION_UUID,context:f.context('a'),payload:{type:'updateSettings',settings:settingsA}});
   assert.equal(f.scope('a').settings.folderPath,'C:/A');assert.equal(f.scope('b').settings.folderPath,'C:/legacy');assert.equal(f.scope('b').settings.intervalSeconds,10);assert.equal(f.scope('b').settings.weatherApiKey,'');assert.equal(f.saved.folderPath,'C:/legacy');
-  await f.runtime.fromInspector({uuid:ACTION_UUID,context:f.context('b'),payload:{type:'updateSettings',settings:{...f.scope('b').settings,folderPath:'C:/B',gifBackend:'poster'}}});assert.equal(f.scope('a').settings.gifBackend,'frames');assert.equal(f.scope('b').settings.gifBackend,'poster');
+  await f.runtime.fromInspector({uuid:ACTION_UUID,context:f.context('b'),payload:{type:'updateSettings',settings:{...f.scope('b').settings,folderPath:'C:/B',gifBackend:'poster'}}});assert.equal(f.scope('a').settings.gifBackend,'frames');assert.equal(f.scope('b').settings.gifBackend,'frames');
   const before=f.runtime.animation.contexts.get(f.context('a')).start;await f.runtime.receiveSettings({settings:structuredClone(f.saved)});assert.equal(f.runtime.animation.contexts.get(f.context('a')).start,before);
   const inspector=f.packets.filter(p=>p.type==='inspector'&&p.context===f.context('a')).at(-1).payload;assert.equal(inspector.profile.independent,true);assert.equal(inspector.settings.folderPath,'C:/A');assert.equal(inspector.profileSettings,undefined);
   f.runtime.deactivate(f.context('b'));assert.ok(f.runtime.animation.contexts.has(f.context('a')));assert.equal(f.scope('b').slides[0].signature,'sample');
@@ -91,6 +92,13 @@ test('add for an unselected saved profile cannot steal the large display from it
   assert.deepEqual([...f.runtime.animation.contexts.keys()],[a]);assert.equal(f.scope('hidden').activeContexts.size,0);
   await f.runtime.fromInspector({uuid:ACTION_UUID,context:hidden,payload:{type:'updateSettings',settings:{...f.scope('hidden').settings,folderPath:'C:/hidden'}}});
   assert.deepEqual([...f.runtime.animation.contexts.keys()],[a]);assert.equal(f.scope('a').settings.folderPath,'C:/legacy');f.runtime.close();
+});
+
+test('deactivating the previous profile does not cancel another profile still resolving or preparing its gallery',async()=>{
+  let release;const pending=new Promise(done=>release=done),f=fixture({resolver:{resolve:ctx=>ctx.endsWith('b')?pending:Promise.resolve({key:profileKey('a'),deviceKey:'one-D200',label:'A',warning:''})}});
+  await f.runtime.activate({uuid:ACTION_UUID,context:f.context('a')});let cancellations=0;const original=mediaPreparer.cancel;mediaPreparer.cancel=()=>{cancellations++;};
+  try{const activating=f.runtime.activate({uuid:ACTION_UUID,context:f.context('b')});f.runtime.deactivate(f.context('a'));assert.equal(cancellations,0);release({key:profileKey('b'),deviceKey:'one-D200',label:'B',warning:''});await activating;assert.deepEqual([...f.runtime.animation.contexts.keys()],[f.context('b')]);}
+  finally{mediaPreparer.cancel=original;f.runtime.close();}
 });
 
 test('shared profile resources coalesce weather and system work, bound combined gallery memory and close shared watchers once',async()=>{

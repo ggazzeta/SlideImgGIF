@@ -1,48 +1,55 @@
-# Performance policies
+# Performance policies ? 0.11.0
 
-These are conservative project policies, **not Ulanzi firmware limits**.
+These are project policies, **not Ulanzi firmware limits**.
 
-| Resource | Initial limit |
+| Resource | Limit |
 |---|---:|
-| Compressed source file | 8 MiB |
+| Compressed GIF / static source | 16 MiB / 8 MiB |
 | GIF canvas, each side | 2048 pixels |
-| GIF frames | 200 |
-| Aggregate source decoded pixels | 20 million |
-| Aggregate normalized pixels | 20 million |
-| Prepared GIF + PNG frame strings | 16 MiB per media |
-| Content-addressed preparation cache | 32 MiB |
-| Gallery retained prepared content | 32 MiB |
-| Worker concurrency | 1 |
-| Waiting preparation jobs | 8 |
-| Worker watchdog | 15 seconds |
-| Individual native processing operation | 10 seconds |
-| PNG scheduler | up to 10 FPS |
-| WebSocket bytes in flight | 1 MiB |
+| Source GIF frames | 600 |
+| Aggregate source / normalized work | 64 million pixels each |
+| One effective GIF cycle | 20 seconds |
+| Prepared unique binary PNGs | 64 MiB per clip |
+| Prepared playback references | at most 201 (10 FPS plus terminal frame) |
+| Runtime disk cache | 256 MiB, 512 entries |
+| Temporary source TIFF | 272 MiB, one job only |
+| Binary frame / Base64 send LRUs | 8 MiB / 2 MiB shared |
+| Prepared metadata / discovery posters LRUs | 4 MiB / 4 MiB |
+| Shared static/gallery-poster retention | 32 MiB |
+| Coalesced simultaneous frame reads | 4 |
+| Worker jobs / waiting buffers | 1 / 2 |
+| Worker watchdog / native decode operation | 30 seconds / 20 seconds |
+| Idle worker lifetime | 10 seconds |
+| GIF scheduler / WebSocket backlog | 10 FPS / 1 MiB |
 
-In 0.10.0, the 32 MiB gallery budget is shared across all active profiles rather
-than repeated per profile; inactive profiles release their prepared gallery.
-There is still one shared GIF scheduler and one gallery clock. Identical folder
-watchers, weather requests and system samples are shared. Preference metadata
-has separate project caps of 256 profiles and 1 MiB serialized settings; private
-backup/read-only lookup bounds are described in PROFILE_SETTINGS_MIGRATION.md.
+There is no source/normalized full RGBA stack in JavaScript in production GIF
+preparation. Native libvips/libnsgif still needs the compressed input and compositing
+buffers; OS allocators/page cache and Sharp's own transient allocations mean these
+policies are **not a process RSS ceiling**. The native cache is disabled in the
+worker. Source buffers transfer to the worker when owned and transferable; waiting
+buffers are bounded. Static inputs retain the existing 40-million-pixel policy.
 
-The pinned encoder accepts delay values up to 65535 ms and iteration counts up
-to 65535. Sources outside that encoding range are rejected with an actionable
-timing error rather than silently changing finite loops or frame timing.
+Worst-case preparation can temporarily use the 256 MiB disk cache plus a 272 MiB
+TIFF and a 64 MiB pending PNG pack (about 592 MiB, excluding small metadata).
+Intermediate files are removed on success, failure, cancellation and next-start
+recovery. Cache entries are atomic, validated and source-content/version keyed;
+a live process owns the cache. Another runtime is refused rather than deleting
+its working files. The source checker has a separate 256 MiB cache.
 
-RGBA decoded data can use 80 MB, with another 80 MB normalized strip. Native
-codec buffers and encoding copies add transient memory. Prepared caches together
-are bounded at 64 MiB; this is not a process-RSS limit. A refresh can temporarily
-retain old and new gallery contents. Existing static inputs retain their 40 MP
-limit and asynchronous Sharp processing. Smaller galleries are recommended until
-device measurements establish a comfortable working set. Preparation processes
-one media item at a time; invalid media is skipped with an actionable Inspector
-message, and valid static media remains in the gallery.
+Discovery reads/hashes sources and decodes only posters. Current/next GIFs are
+prepared; PNG encoding happens once per content/schema cache miss, never per
+playback frame. Inactive galleries release their data. A warm frame uses the
+URI LRU; otherwise it uses binary cached PNGs or a coalesced bounded disk read.
+Base64 conversion can repeat after URI eviction. Frame reads do not accumulate
+behind the scheduler: at most one is outstanding per context; overdue/stale results
+are dropped. No weather polling increase or per-profile frame timer is introduced.
 
-10 FPS is an initial candidate cap, not evidence that Studio or D200 can sustain
-it. Native GIF has no documented adjustable FPS API. Frame mode intentionally
-skips overdue frames and can distort perceived timing for very short frame delays;
-it does not count frames as gallery slides or increase weather requests. Actual
-bytes in flight use `ws.bufferedAmount`; acknowledgements do not select a backend.
-See PERFORMANCE_MEASUREMENTS.json for local worker/fake-socket measurements and
-MANUAL_VALIDATION.md for the missing Studio/device measurements.
+No lossy palette quantization is enabled. Duplicate normalized frames reuse bytes;
+low-rate inputs retain their effective delays. High-rate inputs are sampled after
+correct disposal/compositing, preserving cycle duration and final pixels but losing
+some brief frames. Zero delays use the existing 100 ms policy. Finite embedded loops
+hold the final frame; slideshow dwell may still end an item mid-cycle.
+
+See CACHE_PERFORMANCE_MEASUREMENTS.json for one isolated synthetic comparison and
+MEDIA_CACHE_RESEARCH.md for codec sources/tradeoffs. Studio responsiveness, actual
+D200 cadence/sustained playback and macOS animation remain manual checks.

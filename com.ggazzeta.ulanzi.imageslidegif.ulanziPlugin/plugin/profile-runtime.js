@@ -54,7 +54,7 @@ export class ProfileRuntime {
     };
     const result=this.saveQueue.then(operation);this.saveQueue=result.catch(()=>{});return result;
   }
-  cancelPreparation(key){if(![...this.profiles].some(([owner,item])=>owner!==key&&item.service.activeContexts.size))mediaPreparer.cancel();}
+  cancelPreparation(key){const anotherDisplay=[...this.contexts.values()].some(entry=>entry.active&&!entry.cancelled&&(entry.controller?.scope.key!==key||!this.profiles.get(key)?.service.activeContexts.size));if(!anotherDisplay&&![...this.profiles].some(([owner,item])=>owner!==key&&item.service.activeContexts.size))mediaPreparer.cancel();}
   async ensure(event,active=false){
     if(!this.accepted(event))return null;
     let entry=this.contexts.get(event.context);if(entry){if(active)entry.active=true;return entry.promise;}
@@ -117,6 +117,6 @@ export class ProfileRuntime {
   }
   close(){
     this.generation++;for(const entry of this.contexts.values())entry.cancelled=true;for(const waiter of [...this.readyWaiters])waiter.reject();this.confirmation?.reject();
-    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();mediaPreparer.cancel();this.contexts.clear();this.profiles.clear();this.displayOwners.clear();this.store=null;this.blocked=false;this.requested=false;
+    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();void mediaPreparer.shutdown().catch(()=>{});this.contexts.clear();this.profiles.clear();this.displayOwners.clear();this.store=null;this.blocked=false;this.requested=false;
   }
 }

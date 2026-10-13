@@ -1,3 +1,32 @@
+# Current media architecture ? 0.11.0
+
+Production GIFs use PNG frames only. Discovery validates full content hashes and
+prepares only posters. Current/next media triggers a single reusable worker, with
+owned buffer transfer, a two-job waiting queue, watchdog and ten-second idle exit.
+libvips 8.18.7 composites GIF disposal/partial frames once into a bounded temporary
+TIFF; selected pages are resized separately to avoid frame-edge interpolation.
+10 FPS sampling follows compositing, keeps cycle duration/finite final pixels and
+reuses identical normalized pixels. PNG encoding is lossless and cached.
+
+`prepared-media-store.js` stores versioned SHA-256 derived PNG packs atomically,
+validates metadata/frame hashes and keeps small shared binary/URI/metadata LRUs.
+A live-process ownership file prevents another runtime from deleting working
+stages; stale ownership recovery is serialized. A bounded recency checkpoint is
+written on graceful close, not every frame. Current media has an eviction lease.
+A separate source-checker cache avoids contention with a running Studio plugin.
+Temporary and committed cache paths never use source filenames.
+
+One monotonic scheduler has at most one pending async read per display context.
+It checks backlog before/after reads, drops overdue/stale results and stops on
+replacement/removal. Preparation cancellation protects another profile still
+initializing; shutdown waits for pending atomic commits and reads before releasing
+cache ownership. The existing single-owner D200 slot arbitration, Inspector context
+filter, settings registry, weather/system coalescing and gallery dwell logic remain.
+No decoding or PNG encoding happens on a playback tick or through the Inspector.
+Internal posters provide loading/stop replacement; they are not a playback option.
+
+The sections below preserve the earlier architecture/research history.
+
 # Architecture
 
 Version 0.10.0 adds `ProfileRuntime` above the existing slideshow engine. It uses

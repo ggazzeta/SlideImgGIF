@@ -1,17 +1,14 @@
-ImageSlide GIF 0.10.1 — 2026-10-12
-Upstream cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8; fork ggazzeta/SlideImgGIF.
-
-Actual baseline: Node 22.14.0, 58/59 pass (one Windows temp-cleanup ENOTEMPTY);
-Python 34 total, 32 pass, 2 optional skips; npm audit zero vulnerabilities.
-Current Node suite: 94/94 pass on Node 20.12.2 and 24.21.0, no skips.
-Python final suite: 36/36 pass including artifacts, no skips.
-Universal native stage: exact lock integrity, PE/Mach-O architecture checks passed.
-Packaged Node 20.12.2 Windows x64 smoke: worker decode, native once, PNG replacement pass.
-Packaged profile smoke: two independent synthetic profiles on one display, switch/return and fake SDK save/readback pass.
-Simulator: official router + render function, fake sockets/DOM; 4 packets + replies.
-0.9.0 user observation: Studio native GIF animates; physical D200 freezes; PNG frames works.
-0.10.0 installed preference migration/readback and backup hashes verified; user reported conflicting multi-profile playback.
-0.10.1 ownership correction: physical switch validation pending; new replacement approval required.
-No installed Setup or audio changes. Personal profile clone preparation refused an
-unresolved external reference; no original/installed profile was modified.
-Detailed evidence and measurement limits: docs/TEST_RESULTS.md.
+ImageSlide GIF 0.11.0 ? 2026-10-13
+Fork ggazzeta/SlideImgGIF; upstream cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8 (MIT Santiago P?rez).
+PNG-frame-only production playback; Sharp 0.35.5 and ws 8.21.3 unchanged.
+New private bounded disk cache, binary/send LRUs, lazy current/next preparation,
+lossless PNG encoding and disposal-correct short-clip sampling at the existing 10 FPS cap.
+106/106 Node tests pass on 20.12.2 and 24.21.0, no skips.
+Staged native package smoke passes PNG-only delivery, worker preparation, static replacement and two-profile switch/return with fake SDK sockets.
+See docs/TEST_RESULTS.md for release inventory results and historical baseline runs.
+npm audit recheck: zero vulnerabilities.
+Synthetic Windows comparison: approximately 177 MiB ? 72 MiB sampled peak RSS;
+2.37 s ? 0.75 s process CPU on one 80-frame clip. No Studio/device measurements.
+Near-limit synthetic 62.9-million-pixel clip accepted; old policy rejected it.
+0.10.1 remains installed. 0.11.0 is prepared, not installed or physically validated.
+No profiles imported, installed Setup executed, audio changed or store submission.

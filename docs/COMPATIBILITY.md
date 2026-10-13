@@ -1,3 +1,19 @@
+# Current evidence ? 0.11.0 preparation, 2026-10-13
+
+PNG frames is the only production animated backend. User-confirmed basic D200
+PNG playback belongs to 0.9.0; native freezes on that setup. 0.10.1 was explicitly
+approved, installed and file/preference verified, with physical profile switching
+still unreported. 0.11.0 is prepared for review, not installed or hardware verified.
+Sharp 0.35.5 and ws 8.21.3 are unchanged; npm audit on 2026-10-13 reports zero
+vulnerabilities. Windows x64 Sharp reports libvips 8.18.7, libpng 1.6.58 and TIFF
+4.7.2. Exact macOS packages are preserved and statically checked; their animation
+has not been physically tested. See MEDIA_CACHE_RESEARCH.md for exact codec source.
+Setup identity and executable pins remain unchanged; only narrowly enumerated
+prior fork metadata (0.9.0, 0.10.0, 0.10.1) gains restore-version acceptance.
+
+The following sections retain the earlier source/research history; their dated
+installation/device-availability statements are historical.
+
 # Compatibility evidence (2026-10-12)
 
 0.10.0 update: the user authorized fully independent profile preferences. Source
