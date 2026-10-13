@@ -101,6 +101,14 @@ test('deactivating the previous profile does not cancel another profile still re
   finally{mediaPreparer.cancel=original;f.runtime.close();}
 });
 
+test('an older reactivation for the same context cannot deactivate a newer successful activation',async()=>{
+  const f=fixture(),context=f.context('a');await f.runtime.activate({uuid:ACTION_UUID,context});f.runtime.deactivate(context);
+  let release,calls=0;const pending=new Promise(done=>release=done),scope={key:profileKey('a'),deviceKey:'device-a',label:'A',warning:''};
+  f.runtime.resolver={resolve:()=>++calls===1?pending:Promise.resolve(scope)};
+  const older=f.runtime.activate({uuid:ACTION_UUID,context});await f.runtime.activate({uuid:ACTION_UUID,context});release(scope);await older;
+  assert.equal(f.scope('a').activeContexts.has(context),true);assert.deepEqual([...f.runtime.animation.contexts.keys()],[context]);f.runtime.close();assert.equal(f.runtime.contextActivations.size,0);
+});
+
 test('shared profile resources coalesce weather and system work, bound combined gallery memory and close shared watchers once',async()=>{
   let calls=0,now=0,samples=0;const weather=new SharedWeatherRequests({now:()=>now,fetchImpl:async()=>{calls++;return {ok:true,status:200,text:async()=>'{"weather":true}'};}});
   const [a,b]=await Promise.all([weather.request('https://example.invalid/weather?key=private'),weather.request('https://example.invalid/weather?key=private')]);assert.equal(calls,1);assert.equal(await a.text(),await b.text());await weather.request('https://example.invalid/weather?key=private');assert.equal(calls,1);now=31*60*1000;await weather.request('https://example.invalid/weather?key=private');assert.equal(calls,2);

@@ -7,7 +7,7 @@ sampling with duration/finite-loop terminal behavior, shared duplicate pixels,
 late async frame reads/backpressure, source replacement, temporary cleanup,
 shutdown during atomic commit, reconnect and pending-profile cancellation.
 All previous static/information, profile/Inspector and exact Setup checks remain.
-106/106 Node tests pass on 20.12.2 and 24.21.0, with no skips. The staged Windows x64 smoke passes real bundled Sharp preparation, PNG-only packets (zero native GIF packets), static replacement and two synthetic profiles sharing one D200 slot through fake SDK settings readback. Universal native integrity/architecture checks pass. Final Python release-inventory results follow artifact construction.
+107/107 Node tests pass on 20.12.2 and 24.21.0, with no skips. The staged Windows x64 smoke passes real bundled Sharp preparation, PNG-only packets (zero native GIF packets), static replacement and two synthetic profiles sharing one D200 slot through fake SDK settings readback. Universal native integrity/architecture checks pass. 36/36 Python release/restore checks pass, with no skips. Store metadata retains the existing macOS manual-reopen and clock-overlay caveats. Same-context late activation and profile rebinding have additional regression coverage.
 
 One synthetic 640?360, 80-frame, 30 ms clip measured about 177 MiB peak process RSS
 on the old pipeline and 72 MiB on the new pipeline; process CPU was 2.37 versus

@@ -3,7 +3,8 @@ Fork ggazzeta/SlideImgGIF; upstream cd8c36cb7a9cb0d632fa048777c23f938ed9f5c8 (MI
 PNG-frame-only production playback; Sharp 0.35.5 and ws 8.21.3 unchanged.
 New private bounded disk cache, binary/send LRUs, lazy current/next preparation,
 lossless PNG encoding and disposal-correct short-clip sampling at the existing 10 FPS cap.
-106/106 Node tests pass on 20.12.2 and 24.21.0, no skips.
+107/107 Node tests pass on 20.12.2 and 24.21.0, no skips.
+36/36 Python release/restore checks pass, no skips.
 Staged native package smoke passes PNG-only delivery, worker preparation, static replacement and two-profile switch/return with fake SDK sockets.
 See docs/TEST_RESULTS.md for release inventory results and historical baseline runs.
 npm audit recheck: zero vulnerabilities.

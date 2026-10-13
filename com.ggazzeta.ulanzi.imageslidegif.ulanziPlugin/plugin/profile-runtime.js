@@ -13,7 +13,7 @@ export class ProfileRuntime {
     this.client=client;this.configuration={...configuration,defaults:{...configuration.defaults,gifBackend:'frames'}};this.now=now;this.timers=timerApi;this.resolver=scopeResolver;this.backups=backups;this.options=serviceOptions;this.logger=logger;this.confirmationMs=confirmationMs;
     this.animation=animationPlayer||new AnimationPlayer({client,timerApi});this.clock=new SharedGalleryClock(timerApi);this.budget=new SharedGalleryBudget();this.watchers=new SharedFolderWatchers(watchFactory);
     this.weather=new SharedWeatherRequests({fetchImpl,now});this.system=new SharedSystemSamples({monitor:systemMonitor,now});
-    this.contexts=new Map();this.profiles=new Map();this.displayOwners=new Map();this.activationSequence=0;this.store=null;this.blocked=false;this.requested=false;this.generation=0;this.readyWaiters=new Set();this.saveQueue=Promise.resolve();this.confirmation=null;
+    this.contexts=new Map();this.contextActivations=new Map();this.profiles=new Map();this.displayOwners=new Map();this.activationSequence=0;this.store=null;this.blocked=false;this.requested=false;this.generation=0;this.readyWaiters=new Set();this.saveQueue=Promise.resolve();this.confirmation=null;
   }
   bind(){
     const run=fn=>event=>{void Promise.resolve(fn(event)).catch(()=>this.error(event?.context,'Profile settings could not be loaded; please reopen the Inspector.'));};
@@ -89,10 +89,10 @@ export class ProfileRuntime {
   async activate(event,added=false){
     if(!this.accepted(event))return;
     if(added&&(event.active!==undefined||event.param?.active!==undefined)&&!isActive(event.active??event.param.active)){await this.ensure(event,false);return;}
-    const sequence=++this.activationSequence;
+    const sequence=++this.activationSequence;this.contextActivations.set(event.context,sequence);
     const previous=this.contexts.get(event?.context),generation=this.generation;
-    if(previous&&!previous.active&&previous.controller){const scope=await this.resolver.resolve(event.context);if(generation!==this.generation)return;if(scope.key!==previous.controller.scope.key||scope.ambiguous)this.clear([event.context]);else Object.assign(previous.controller.scope,scope);}
-    const controller=await this.ensure(event,true),entry=this.contexts.get(event.context);if(!controller||!entry||entry.cancelled||!entry.active)return;
+    if(previous&&!previous.active&&previous.controller){const scope=await this.resolver.resolve(event.context);if(generation!==this.generation||this.contextActivations.get(event.context)!==sequence)return;if(scope.key!==previous.controller.scope.key||scope.ambiguous){this.clear([event.context]);this.contextActivations.set(event.context,sequence);}else Object.assign(previous.controller.scope,scope);}
+    const controller=await this.ensure(event,true),entry=this.contexts.get(event.context);if(!controller||!entry||entry.cancelled||!entry.active||this.contextActivations.get(event.context)!==sequence)return;
     // Contexts include ActionID, but every page/profile on the same D200 shares
     // physical slot 3_2. Only its current owner may run a gallery/frame pump.
     if(added&&controller.scope.selected===false){this.deactivate(event.context);return;}
@@ -108,7 +108,7 @@ export class ProfileRuntime {
     if(!wasActive){service.add(event);await service.rescan(true);if(entry.active&&!entry.cancelled)service.nextSlideAt=this.now()+(service.settings.showImages?service.settings.intervalSeconds*1000:service.informationDurationMs());}
   }
   deactivate(context){const entry=this.contexts.get(context);if(!entry)return;entry.active=false;for(const [target,owner] of this.displayOwners)if(owner.context===context)this.displayOwners.delete(target);const service=entry.controller?.service;if(service)service.setActive({uuid:ACTION_UUID,context,active:false});}
-  clear(contexts){for(const context of contexts||[]){const entry=this.contexts.get(context);if(!entry)continue;this.deactivate(context);entry.cancelled=true;entry.controller?.service.clear([context]);this.contexts.delete(context);}}
+  clear(contexts){for(const context of contexts||[]){this.contextActivations.delete(context);const entry=this.contexts.get(context);if(!entry)continue;this.deactivate(context);entry.cancelled=true;entry.controller?.service.clear([context]);this.contexts.delete(context);}}
   async fromInspector(event){
     if(!this.accepted(event))return;if(this.blocked){this.error(event.context,'Saved profile settings are incompatible; restore the private backup before saving.');if(event.payload?.type==='requestState')this.client.getGlobalSettings(event.context);return;}
     const controller=await this.ensure(event,false);if(!controller)return;
@@ -117,6 +117,6 @@ export class ProfileRuntime {
   }
   close(){
     this.generation++;for(const entry of this.contexts.values())entry.cancelled=true;for(const waiter of [...this.readyWaiters])waiter.reject();this.confirmation?.reject();
-    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();void mediaPreparer.shutdown().catch(()=>{});this.contexts.clear();this.profiles.clear();this.displayOwners.clear();this.store=null;this.blocked=false;this.requested=false;
+    for(const controller of this.profiles.values())controller.service.close();this.animation.close();this.clock.close();this.watchers.close();void mediaPreparer.shutdown().catch(()=>{});this.contexts.clear();this.contextActivations.clear();this.profiles.clear();this.displayOwners.clear();this.store=null;this.blocked=false;this.requested=false;
   }
 }
